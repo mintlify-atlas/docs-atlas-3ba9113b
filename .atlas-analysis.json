@@ -1,0 +1,148 @@
+{
+  "projectType": "general",
+  "projectName": "PhoneClaw",
+  "projectDescription": "An Android automation framework that runs on-device workflows using ClawScript, a JavaScript-based scripting language with vision-assisted UI targeting.",
+  "theme": "aspen",
+  "primaryColor": "#FF6B35",
+  "lightColor": "#FF8C61",
+  "darkColor": "#E5501F",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "installation"
+            ]
+          },
+          {
+            "group": "Core Concepts",
+            "pages": [
+              "concepts/clawscript",
+              "concepts/accessibility-service",
+              "concepts/vision-targeting",
+              "concepts/scheduling"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/setup-device",
+              "guides/first-automation",
+              "guides/voice-commands",
+              "guides/scheduling-tasks",
+              "guides/multi-app-workflows"
+            ]
+          },
+          {
+            "group": "Configuration",
+            "pages": [
+              "configuration/api-keys",
+              "configuration/models",
+              "configuration/permissions"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "ClawScript API",
+            "pages": [
+              "api/overview",
+              "api/speech",
+              "api/timing",
+              "api/scheduling",
+              "api/ui-automation",
+              "api/notifications"
+            ]
+          },
+          {
+            "group": "Helper Functions",
+            "pages": [
+              "api/magic-clicker",
+              "api/magic-scraper",
+              "api/utilities"
+            ]
+          },
+          {
+            "group": "Accessibility Service",
+            "pages": [
+              "api/accessibility/overview",
+              "api/accessibility/node-operations",
+              "api/accessibility/gestures"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Examples",
+        "groups": [
+          {
+            "group": "Example Workflows",
+            "pages": [
+              "examples/social-media",
+              "examples/email-automation",
+              "examples/captcha-solving",
+              "examples/account-creation",
+              "examples/media-upload"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Resources",
+        "groups": [
+          {
+            "group": "Community",
+            "pages": [
+              "community/discord",
+              "community/contributing"
+            ]
+          },
+          {
+            "group": "Troubleshooting",
+            "pages": [
+              "troubleshooting/common-issues",
+              "troubleshooting/debugging",
+              "troubleshooting/faq"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "ClawScript JavaScript-based scripting for flexible automation",
+    "Vision-assisted UI targeting with magicClicker and magicScraper",
+    "Cron-based scheduling for recurring automated tasks",
+    "Voice command interface for generating automation scripts",
+    "Multi-app workflow chaining across different Android applications",
+    "On-device execution without root access required",
+    "AI-powered automation script generation via OpenRouter",
+    "Screen capture and analysis for adaptive workflows"
+  ],
+  "publicApiSurface": [
+    "speakText(text)",
+    "delay(ms)",
+    "schedule(task, cronExpression)",
+    "clearSchedule()",
+    "magicClicker(description)",
+    "magicScraper(description)",
+    "sendAgentEmail(to, subject, message)",
+    "safeInt(value, defaultVal)",
+    "MyAccessibilityService.clickByDesc(description)",
+    "MyAccessibilityService.simulateTypeInFirstEditableField(text)",
+    "MyAccessibilityService.isTextPresentOnScreen(searchText)",
+    "MyAccessibilityService.simulateSwipe(startX, startY, endX, endY)",
+    "MyAccessibilityService.getAllTextFromScreen()",
+    "MyAccessibilityService.pressEnterKey()",
+    "MyAccessibilityService.clickElementByViewId(viewId)",
+    "MyAccessibilityService.clickButtonWithLabel(label)"
+  ]
+}
