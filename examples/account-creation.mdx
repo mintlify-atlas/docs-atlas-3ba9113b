@@ -1,0 +1,441 @@
+---
+title: 'Account Creation with 2FA'
+description: 'Automate account creation workflows with email verification and 2FA'
+---
+
+## Overview
+
+PhoneClaw can automate the complete account creation process, including email verification and two-factor authentication (2FA). Watch the [Instagram account creation demo](https://www.youtube.com/watch?v=9zR43vLYCMs) to see automated account creation with 2FA from email.
+
+## Complete Account Creation Workflow
+
+This workflow demonstrates creating accounts with email verification and 2FA:
+
+<Steps>
+  <Step title="Navigate to Signup">
+    Open the app and navigate to the account creation page.
+    
+    ```js
+    magicClicker("Instagram app")
+    delay(2000)
+    magicClicker("Create new account")
+    delay(1500)
+    ```
+  </Step>
+  
+  <Step title="Fill Registration Form">
+    Complete all required fields using `magicClicker`.
+    
+    ```js
+    // Email field
+    magicClicker("Email address field")
+    delay(1000)
+    // Type email using your input method
+    
+    // Username field
+    magicClicker("Username field")
+    delay(1000)
+    // Type username
+    
+    // Password field
+    magicClicker("Password field")
+    delay(1000)
+    // Type password
+    
+    magicClicker("Next button")
+    delay(2000)
+    ```
+  </Step>
+  
+  <Step title="Handle Email Verification">
+    Switch to email app and extract verification code.
+    
+    ```js
+    magicClicker("Home button")
+    delay(1000)
+    
+    magicClicker("Email app")
+    delay(2000)
+    
+    magicClicker("Most recent email")
+    delay(1500)
+    
+    const code = magicScraper("The 6-digit verification code in the email")
+    speakText(`Verification code: ${code}`)
+    ```
+  </Step>
+  
+  <Step title="Enter Verification Code">
+    Return to the app and submit the verification code.
+    
+    ```js
+    // Return to Instagram
+    magicClicker("Recent apps button")
+    delay(500)
+    magicClicker("Instagram app")
+    delay(1500)
+    
+    // Enter verification code
+    magicClicker("Verification code field")
+    delay(1000)
+    // Type the extracted code
+    
+    magicClicker("Verify button")
+    delay(2000)
+    ```
+  </Step>
+  
+  <Step title="Complete 2FA Setup">
+    Set up two-factor authentication if required.
+    
+    ```js
+    const needs2FA = magicScraper("Is 2FA setup shown on screen?")
+    
+    if (needs2FA.includes("yes")) {
+      magicClicker("Enable 2FA button")
+      delay(2000)
+      
+      // Handle 2FA setup process
+      const backupCode = magicScraper("The backup code shown on screen")
+      speakText(`Backup code saved: ${backupCode}`)
+      
+      magicClicker("Continue button")
+      delay(2000)
+    }
+    
+    speakText("Account created successfully")
+    ```
+  </Step>
+</Steps>
+
+## Complete Instagram Account Creation Script
+
+```js
+// Automate Instagram account creation with 2FA
+const createInstagramAccount = (email, username, password) => {
+  speakText("Starting Instagram account creation")
+  
+  // Open Instagram
+  magicClicker("Instagram app")
+  delay(2000)
+  
+  // Start signup
+  magicClicker("Create new account")
+  delay(1500)
+  
+  // Fill email
+  magicClicker("Email address field")
+  delay(1000)
+  // typeText(email)
+  
+  magicClicker("Next button")
+  delay(2000)
+  
+  // Fill username
+  magicClicker("Username field")
+  delay(1000)
+  // typeText(username)
+  
+  magicClicker("Next button")
+  delay(2000)
+  
+  // Fill password
+  magicClicker("Password field")
+  delay(1000)
+  // typeText(password)
+  
+  magicClicker("Next button")
+  delay(2000)
+  
+  // Fill additional info
+  magicClicker("Birthday field")
+  delay(1000)
+  // Enter birthday
+  
+  magicClicker("Next button")
+  delay(3000)
+  
+  speakText("Form submitted, checking for verification")
+  
+  // Check for email verification
+  const needsVerification = magicScraper("Is email verification required?")
+  
+  if (needsVerification.includes("yes")) {
+    speakText("Getting verification code from email")
+    
+    // Switch to email
+    magicClicker("Home button")
+    delay(1000)
+    
+    magicClicker("Email app")
+    delay(2000)
+    
+    magicClicker("Inbox")
+    delay(1000)
+    
+    magicClicker("Most recent email from Instagram")
+    delay(2000)
+    
+    // Extract verification code
+    const verificationCode = magicScraper("The verification code in the email body")
+    speakText(`Code retrieved: ${verificationCode}`)
+    
+    // Return to Instagram
+    magicClicker("Recent apps")
+    delay(500)
+    magicClicker("Instagram")
+    delay(1500)
+    
+    // Enter code
+    magicClicker("Verification code input field")
+    delay(1000)
+    // typeText(verificationCode)
+    
+    magicClicker("Confirm button")
+    delay(3000)
+  }
+  
+  // Handle 2FA setup
+  const setup2FA = magicScraper("Is two-factor authentication setup shown?")
+  
+  if (setup2FA.includes("yes")) {
+    speakText("Setting up two-factor authentication")
+    
+    magicClicker("Get started with 2FA")
+    delay(2000)
+    
+    magicClicker("Use authentication app")
+    delay(1500)
+    
+    // Save backup codes
+    const backupCodes = magicScraper("The backup codes shown on screen")
+    
+    // Send backup codes via email for safekeeping
+    sendAgentEmail(
+      email,
+      "Instagram 2FA Backup Codes",
+      `Your backup codes: ${backupCodes}`
+    )
+    
+    magicClicker("Done button")
+    delay(2000)
+  }
+  
+  speakText("Instagram account created successfully")
+  
+  // Send confirmation email
+  sendAgentEmail(
+    email,
+    "Account Created Successfully",
+    `Your Instagram account @${username} has been created and verified.`
+  )
+}
+
+// Execute account creation
+createInstagramAccount(
+  "user@example.com",
+  "username123",
+  "SecurePass123!"
+)
+```
+
+## Multi-Account Creation
+
+Create multiple accounts in sequence:
+
+```js
+// Create multiple accounts from a list
+const accounts = [
+  { email: "user1@example.com", username: "user1", password: "Pass1!" },
+  { email: "user2@example.com", username: "user2", password: "Pass2!" },
+  { email: "user3@example.com", username: "user3", password: "Pass3!" }
+]
+
+const createMultipleAccounts = () => {
+  accounts.forEach((account, index) => {
+    speakText(`Creating account ${index + 1} of ${accounts.length}`)
+    
+    createInstagramAccount(
+      account.email,
+      account.username,
+      account.password
+    )
+    
+    delay(5000)
+    
+    // Log out before creating next account
+    magicClicker("Profile tab")
+    delay(1000)
+    magicClicker("Menu button")
+    delay(1000)
+    magicClicker("Log out")
+    delay(2000)
+    magicClicker("Log out confirmation")
+    delay(3000)
+  })
+  
+  speakText(`All ${accounts.length} accounts created successfully`)
+}
+
+createMultipleAccounts()
+```
+
+## Generic Account Creation Template
+
+Adapt this template for any platform:
+
+```js
+// Generic account creation template
+const createAccount = (platform, credentials) => {
+  speakText(`Creating ${platform} account`)
+  
+  // Open app
+  magicClicker(`${platform} app`)
+  delay(2000)
+  
+  // Navigate to signup
+  magicClicker("Sign up" || "Create account" || "Register")
+  delay(2000)
+  
+  // Fill form fields
+  Object.keys(credentials).forEach(field => {
+    magicClicker(`${field} field`)
+    delay(1000)
+    // typeText(credentials[field])
+    magicClicker("Next" || "Continue")
+    delay(1500)
+  })
+  
+  // Handle verification
+  const needsVerification = magicScraper("Is verification required?")
+  
+  if (needsVerification.includes("yes")) {
+    // Get code from email
+    magicClicker("Home button")
+    delay(1000)
+    
+    magicClicker("Email app")
+    delay(2000)
+    
+    const code = magicScraper("Verification code in the most recent email")
+    
+    // Return and enter code
+    magicClicker("Recent apps")
+    delay(500)
+    magicClicker(`${platform} app`)
+    delay(1500)
+    
+    magicClicker("Code input field")
+    delay(1000)
+    // typeText(code)
+    
+    magicClicker("Verify")
+    delay(2000)
+  }
+  
+  speakText(`${platform} account created successfully`)
+}
+
+// Example usage
+createAccount("Twitter", {
+  email: "user@example.com",
+  username: "twitteruser",
+  password: "SecurePass!"
+})
+```
+
+## Handling SMS-Based 2FA
+
+Extract codes from SMS messages:
+
+```js
+// Get 2FA code from SMS
+const get2FAFromSMS = () => {
+  magicClicker("Messages app")
+  delay(2000)
+  
+  magicClicker("Most recent message")
+  delay(1500)
+  
+  const code = magicScraper("The verification code in the SMS message")
+  speakText(`SMS code: ${code}`)
+  
+  return code
+}
+
+// Use in account creation workflow
+const needsSMS = magicScraper("Is SMS verification shown?")
+
+if (needsSMS.includes("yes")) {
+  const smsCode = get2FAFromSMS()
+  
+  // Return to app and enter code
+  magicClicker("Recent apps")
+  delay(500)
+  magicClicker("Target app")
+  delay(1500)
+  
+  magicClicker("SMS code field")
+  delay(1000)
+  // typeText(smsCode)
+  
+  magicClicker("Verify button")
+  delay(2000)
+}
+```
+
+## Error Handling and Recovery
+
+```js
+const createAccountWithErrorHandling = (email, username, password) => {
+  try {
+    createInstagramAccount(email, username, password)
+    
+    // Verify account creation succeeded
+    const success = magicScraper("Is the account successfully created?")
+    
+    if (success.includes("yes")) {
+      sendAgentEmail(
+        "admin@example.com",
+        "Account Creation Success",
+        `Account @${username} created successfully`
+      )
+    } else {
+      throw new Error("Account creation verification failed")
+    }
+    
+  } catch (error) {
+    speakText("Error during account creation")
+    
+    // Take screenshot or gather error info
+    const errorMessage = magicScraper("What error message is shown on screen?")
+    
+    // Send error notification
+    sendAgentEmail(
+      "admin@example.com",
+      "Account Creation Failed",
+      `
+        Failed to create account @${username}
+        Error: ${errorMessage}
+        Email: ${email}
+      `
+    )
+  }
+}
+```
+
+## Best Practices
+
+- Always verify each step before proceeding
+- Store backup codes and important information securely
+- Use appropriate delays between actions
+- Implement error handling and notifications
+- Test the entire workflow before running at scale
+- Respect platform rate limits and terms of service
+- Use unique, strong passwords for each account
+
+## See Also
+
+- [Email Automation](/examples/email-automation)
+- [Captcha Solving](/examples/captcha-solving)
+- [ClawScript API Reference](/api-reference/clawscript-api)

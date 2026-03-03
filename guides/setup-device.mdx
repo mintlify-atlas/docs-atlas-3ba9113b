@@ -1,0 +1,169 @@
+---
+title: "Setting Up Your Android Device"
+description: "Prepare your Android device for PhoneClaw automation with developer mode and accessibility permissions"
+---
+
+## Overview
+
+PhoneClaw requires specific Android permissions and settings to automate apps on your device. This guide walks you through preparing your phone for automation, from enabling developer mode to granting accessibility permissions.
+
+<Note>
+PhoneClaw works on standard Android devices without requiring root access. The cheapest recommended device is a $30 Moto G Play available at Walmart.
+</Note>
+
+## Prerequisites
+
+- Android device running Android 8.0 (API 26) or higher
+- Computer with Android Studio installed
+- USB cable for sideloading
+- Approximately 15 minutes for setup
+
+## Steps
+
+<Steps>
+
+### Enable Developer Mode
+
+Developer mode unlocks advanced Android features needed for automation.
+
+1. Open **Settings** on your Android device
+2. Navigate to **About Phone**
+3. Find **Build Number** (may be under "Software Information")
+4. Tap **Build Number** seven times rapidly
+5. You'll see a message: "You are now a developer!"
+
+<Tip>
+If you're prompted for your PIN or password, enter it to confirm.
+</Tip>
+
+### Install Android Studio and Build APK
+
+PhoneClaw must be built from source and sideloaded onto your device.
+
+1. Download and install [Android Studio](https://developer.android.com/studio)
+2. Clone or download the PhoneClaw repository
+3. Open the project in Android Studio
+4. Click **Build** → **Generate Bundles / APKs** → **Build APK(s)**
+5. Wait for the build to complete (typically 2-5 minutes)
+6. Locate the APK in `app/build/outputs/apk/debug/`
+
+### Sideload the APK
+
+Transfer and install the PhoneClaw APK on your device.
+
+**Option A: USB Transfer**
+1. Connect your device via USB
+2. Copy the APK to your device's Downloads folder
+3. On your device, open **Files** or **Downloads**
+4. Tap the APK file
+5. Tap **Install** (you may need to allow installation from unknown sources)
+
+**Option B: Direct Download**
+1. Upload the APK to cloud storage or a web server
+2. Download it directly on your Android device
+3. Open the downloaded APK and tap **Install**
+
+<Warning>
+If you see "Install blocked", go to Settings → Security → Install unknown apps, select your file manager, and enable "Allow from this source".
+</Warning>
+
+### Grant Accessibility Permissions
+
+Accessibility permissions allow PhoneClaw to interact with UI elements across all apps.
+
+1. Launch PhoneClaw on your device
+2. When prompted, tap **Grant Accessibility Permission**
+3. This opens Android's Accessibility settings
+4. Find **PhoneClaw** in the list of services
+5. Toggle the switch to **ON**
+6. Tap **Allow** when asked to confirm
+
+<Note>
+Accessibility permissions are required for PhoneClaw to click buttons, read text, and navigate apps automatically. Without this permission, automation scripts cannot run.
+</Note>
+
+### Configure Screen Capture
+
+Screen capture enables vision-based automation features like `magicClicker` and `magicScraper`.
+
+1. PhoneClaw will request screen capture permission on first launch
+2. Tap **Start now** when the system dialog appears
+3. This allows PhoneClaw to take screenshots for vision analysis
+
+### Grant Microphone Permission (Optional)
+
+Enable voice commands to generate automation scripts naturally.
+
+1. When PhoneClaw requests microphone access, tap **Allow**
+2. This enables the voice interface for script generation
+3. You can tap the microphone button to speak commands
+
+<Tip>
+Voice commands are the fastest way to create automations. Just describe what you want to automate, and PhoneClaw generates the ClawScript for you.
+</Tip>
+
+</Steps>
+
+## Verify Installation
+
+Confirm PhoneClaw is properly configured:
+
+1. Open PhoneClaw
+2. Check the status indicator shows "Ready"
+3. Accessibility service should show as "Connected" in logs
+4. Tap the microphone button and say "test"
+5. PhoneClaw should respond with text-to-speech confirmation
+
+## Configure API Keys (Optional)
+
+For vision-based features, PhoneClaw uses Moondream API:
+
+1. Create a file named `local.properties` in your project root
+2. Add your Moondream auth token:
+
+```properties
+MOONDREAM_AUTH=YOUR_TOKEN_HERE
+```
+
+3. Rebuild the APK with your token included
+
+<Note>
+Without a Moondream token, `magicClicker` and `magicScraper` features won't work. Basic automation without vision assistance will still function.
+</Note>
+
+## Troubleshooting
+
+### Accessibility Service Won't Enable
+
+- Restart your device
+- Uninstall and reinstall PhoneClaw
+- Check that you're running Android 8.0 or higher
+
+### Screen Capture Fails
+
+- Ensure you granted permission when prompted
+- Check Settings → Apps → PhoneClaw → Permissions
+- Some devices require manual permission in Settings
+
+### App Won't Install
+
+- Enable "Install unknown apps" for your file manager
+- Check you have sufficient storage space (at least 100 MB)
+- Verify the APK isn't corrupted by rebuilding
+
+### Voice Commands Not Working
+
+- Grant microphone permission in Settings → Apps → PhoneClaw
+- Check your device volume isn't muted
+- Try tapping the microphone button instead of continuous listening
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Create Your First Automation" href="/guides/first-automation" icon="play">
+    Build a simple workflow with ClawScript
+  </Card>
+  <Card title="Use Voice Commands" href="/guides/voice-commands" icon="microphone">
+    Generate scripts naturally with voice
+  </Card>
+</CardGroup>

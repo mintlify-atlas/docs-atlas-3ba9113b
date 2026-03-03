@@ -1,0 +1,125 @@
+---
+title: 'Social Media Automation'
+description: 'Automate Twitter and TikTok posting workflows with PhoneClaw'
+---
+
+## Overview
+
+PhoneClaw can automate social media workflows across Twitter, TikTok, and other platforms. This guide demonstrates how to create automated posting workflows using ClawScript.
+
+## Automating Twitter Posts
+
+Based on the [Twitter automation demo](https://www.youtube.com/watch?v=_F5Wfbragh8), you can automate posting to Twitter using vision-assisted UI targeting.
+
+<Steps>
+  <Step title="Navigate to Twitter">
+    Use `magicClicker` to open Twitter and navigate to the compose screen.
+    
+    ```js
+    magicClicker("Twitter app")
+    delay(2000)
+    magicClicker("Compose tweet button")
+    delay(1500)
+    ```
+  </Step>
+  
+  <Step title="Compose Your Tweet">
+    Target the text input field and enter your tweet content.
+    
+    ```js
+    magicClicker("What's happening text field")
+    delay(1000)
+    // Type your tweet content using input helpers
+    ```
+  </Step>
+  
+  <Step title="Post the Tweet">
+    Click the post button to publish.
+    
+    ```js
+    magicClicker("Post button")
+    delay(2000)
+    speakText("Tweet posted successfully")
+    ```
+  </Step>
+</Steps>
+
+### Complete Twitter Automation Script
+
+```js
+// Automated Twitter posting workflow
+magicClicker("Twitter app")
+delay(2000)
+
+magicClicker("Compose tweet button")
+delay(1500)
+
+magicClicker("What's happening text field")
+delay(1000)
+
+// Your tweet composition logic here
+
+magicClicker("Post button")
+delay(2000)
+
+speakText("Tweet posted successfully")
+```
+
+## Scheduling Recurring Posts
+
+You can schedule tweets to post automatically at regular intervals:
+
+```js
+// Schedule tweet every hour
+const tweetTask = `
+  magicClicker("Twitter app")
+  delay(2000)
+  magicClicker("Compose tweet button")
+  delay(1500)
+  magicClicker("Post button")
+  delay(2000)
+`
+
+schedule(tweetTask, "0 * * * *") // Every hour
+speakText("Scheduled hourly tweets")
+```
+
+## Cross-Platform Posting
+
+Automate posting to multiple social media platforms in a single workflow:
+
+```js
+const postToAllPlatforms = () => {
+  // Post to Twitter
+  magicClicker("Twitter app")
+  delay(2000)
+  magicClicker("Compose tweet button")
+  delay(1500)
+  magicClicker("Post button")
+  delay(2000)
+  
+  // Return to home
+  magicClicker("Home button")
+  delay(1000)
+  
+  // Post to TikTok
+  magicClicker("TikTok app")
+  delay(2000)
+  magicClicker("Create button")
+  // Continue workflow...
+}
+
+postToAllPlatforms()
+```
+
+## Best Practices
+
+- Use appropriate delays between actions to ensure UI elements load
+- Test your automation on your specific device to verify element descriptions
+- Use `speakText` to provide progress updates during execution
+- Consider rate limits and platform policies when scheduling automated posts
+
+## See Also
+
+- [Media Upload Automation](/examples/media-upload)
+- [ClawScript API Reference](/api-reference/clawscript-api)

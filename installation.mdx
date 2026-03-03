@@ -1,0 +1,478 @@
+---
+title: Installation
+description: Complete step-by-step guide to install and configure PhoneClaw on your Android device
+---
+
+# Installation
+
+This guide walks you through the complete installation and configuration process for PhoneClaw.
+
+## Hardware requirements
+
+<CardGroup cols={2}>
+  <Card title="Android device" icon="mobile">
+    Any Android device running Android 8.0 (API 26) or higher
+  </Card>
+  <Card title="No root required" icon="shield-check">
+    PhoneClaw works on unrooted devices using the Accessibility API
+  </Card>
+</CardGroup>
+
+### Recommended device
+
+The cheapest option for testing is a **Moto G Play** - available at Walmart in the US for around $30. This is the device used in the demo videos.
+
+<Note>
+  PhoneClaw adapts to different screen sizes and resolutions, so most Android devices will work. Tablets are also supported.
+</Note>
+
+## Prerequisites
+
+Before installing PhoneClaw, you'll need:
+
+1. **Android Studio** - For building the APK
+2. **Git** - To clone the repository
+3. **Moondream API token** - For vision features
+4. **Android device with developer mode enabled**
+
+## Installation steps
+
+<Steps>
+  <Step title="Clone the repository">
+    Get the PhoneClaw source code from GitHub:
+    
+    ```bash
+    git clone https://github.com/yourusername/phoneclaw.git
+    cd phoneclaw
+    ```
+    
+    <Note>
+      Replace `yourusername` with the actual GitHub username or organization hosting PhoneClaw.
+    </Note>
+  </Step>
+
+  <Step title="Configure Moondream authentication">
+    PhoneClaw requires a Moondream auth token for vision-assisted UI targeting. Add your token to the project:
+    
+    **Option A: Local properties (recommended)**
+    
+    Create `local.properties` in the project root:
+    
+    ```properties local.properties
+    # Moondream API authentication
+    MOONDREAM_AUTH=YOUR_TOKEN_HERE
+    ```
+    
+    **Option B: Global Gradle properties**
+    
+    Add to `~/.gradle/gradle.properties`:
+    
+    ```properties ~/.gradle/gradle.properties
+    MOONDREAM_AUTH=YOUR_TOKEN_HERE
+    ```
+    
+    <Warning>
+      Never commit `local.properties` with your token to version control. This file is in `.gitignore` by default.
+    </Warning>
+    
+    ### Getting a Moondream token
+    
+    1. Visit [moondream.ai](https://moondream.ai)
+    2. Sign up for an account
+    3. Navigate to API settings
+    4. Generate a new API token
+    5. Copy the token to your properties file
+  </Step>
+
+  <Step title="Enable developer mode on Android">
+    On your Android device:
+    
+    1. Go to **Settings**
+    2. Scroll to **About Phone** (or **About Device**)
+    3. Find **Build Number**
+    4. Tap **Build Number** 7 times rapidly
+    5. You'll see a message: "You are now a developer!"
+    
+    <Note>
+      On some devices, you may need to enter your PIN or password to enable developer mode.
+    </Note>
+    
+    ### Enable USB debugging
+    
+    1. Go back to **Settings**
+    2. Find **Developer Options** (usually in System or Advanced settings)
+    3. Enable **USB Debugging**
+    4. Connect your device to your computer
+    5. Accept the USB debugging authorization prompt
+  </Step>
+
+  <Step title="Build the APK with Android Studio">
+    Open the project in Android Studio:
+    
+    1. Launch **Android Studio**
+    2. Click **File > Open**
+    3. Navigate to the `phoneclaw` directory
+    4. Click **OK** to open the project
+    5. Wait for Gradle sync to complete
+    
+    ### Generate the APK
+    
+    1. Click **Build** in the menu bar
+    2. Select **Generate Bundles / APKs**
+    3. Click **Build APK(s)**
+    4. Wait for the build to complete
+    5. Click **locate** in the notification to find the APK
+    
+    The APK will be at: `app/build/outputs/apk/debug/app-debug.apk`
+    
+    <CodeGroup>
+    ```bash Command line alternative
+    # Build from terminal if you prefer
+    cd phoneclaw
+    ./gradlew assembleDebug
+    
+    # APK will be at:
+    # app/build/outputs/apk/debug/app-debug.apk
+    ```
+    
+    ```bash Windows
+    cd phoneclaw
+    gradlew.bat assembleDebug
+    ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="Sideload the APK to your device">
+    Transfer and install the APK on your Android device.
+    
+    ### Method 1: Direct install via ADB
+    
+    ```bash
+    adb install app/build/outputs/apk/debug/app-debug.apk
+    ```
+    
+    ### Method 2: Manual transfer
+    
+    1. Copy `app-debug.apk` to your device via:
+       - USB file transfer
+       - Email attachment
+       - Cloud storage (Google Drive, Dropbox, etc.)
+    2. On your Android device, open the APK file
+    3. Tap **Install**
+    4. If prompted, allow installation from unknown sources:
+       - Go to **Settings > Security**
+       - Enable **Install from Unknown Sources**
+       - Or grant permission for your file manager app
+    
+    <Warning>
+      Some devices require you to enable "Install unknown apps" for specific apps (like Files or Chrome) rather than a global setting.
+    </Warning>
+  </Step>
+
+  <Step title="Grant required permissions">
+    After installation, launch PhoneClaw and grant permissions:
+    
+    1. Open the **PhoneClaw** app
+    2. Grant **Microphone** permission (for voice commands)
+    3. Grant **Storage** permission (for downloading/uploading media)
+    4. Grant **Overlay** permission (for screen capture)
+    5. Grant any other requested permissions
+    
+    ### Enable accessibility service
+    
+    This is the most critical permission:
+    
+    1. PhoneClaw will prompt you to enable the accessibility service
+    2. Tap **Go to Settings**
+    3. Find **PhoneClaw** in the accessibility services list
+    4. Toggle it **ON**
+    5. Read and accept the warning about accessibility services
+    
+    <Note>
+      The accessibility service is what allows PhoneClaw to interact with other apps. Without it, no automations will work.
+    </Note>
+  </Step>
+
+  <Step title="Configure device settings">
+    For optimal performance, adjust these Android settings:
+    
+    ### Disable battery optimization
+    
+    1. Go to **Settings > Battery**
+    2. Tap **Battery Optimization**
+    3. Select **All Apps**
+    4. Find **PhoneClaw**
+    5. Select **Don't Optimize**
+    
+    This prevents Android from killing PhoneClaw in the background.
+    
+    ### Keep screen timeout reasonable
+    
+    1. Go to **Settings > Display**
+    2. Set **Screen Timeout** to at least 2 minutes
+    
+    This gives automations time to complete before the screen locks.
+    
+    ### Disable Doze mode (optional)
+    
+    For devices that will run unattended:
+    
+    ```bash
+    adb shell dumpsys deviceidle whitelist +com.example.universal
+    ```
+  </Step>
+</Steps>
+
+## Verify installation
+
+Test that PhoneClaw is working correctly:
+
+<Steps>
+  <Step title="Check accessibility service">
+    1. Open PhoneClaw
+    2. You should see "✓ Accessibility service enabled" in the status
+    3. If not, go back to Settings > Accessibility and enable it
+  </Step>
+
+  <Step title="Test voice recognition">
+    1. Tap the **microphone button**
+    2. Say "Hello PhoneClaw"
+    3. You should see the text transcribed
+    4. PhoneClaw will speak a confirmation
+  </Step>
+
+  <Step title="Test vision features">
+    Create a simple test automation:
+    
+    1. Tap the microphone button
+    2. Say: "Click the settings icon"
+    3. PhoneClaw should:
+       - Take a screenshot
+       - Use vision to locate settings
+       - Attempt to click it
+    
+    <Note>
+      If vision features fail, double-check your Moondream token configuration and rebuild the APK.
+    </Note>
+  </Step>
+</Steps>
+
+## Configuration options
+
+### OpenRouter model selection
+
+PhoneClaw can use different LLM models for script generation:
+
+1. Open PhoneClaw
+2. Tap the **Model** button in the toolbar
+3. Select your preferred model:
+   - **Gemini 2.0 Flash** (default) - Fast and accurate
+   - **Llama 4 Maverick** (free) - Free tier option
+
+### Debug mode
+
+Enable debug mode to capture screenshots for troubleshooting:
+
+```javascript
+// In ClawScript
+setDebugMode(true);
+```
+
+When enabled:
+- Screenshots are captured every 30 minutes
+- Uploaded to Firebase (if configured)
+- Visible in the PhoneClaw web dashboard
+
+### Firebase integration (optional)
+
+For cloud features like remote monitoring:
+
+1. Create a Firebase project
+2. Download `google-services.json`
+3. Place it in `app/`
+4. Rebuild the APK
+
+<Note>
+  Firebase is optional. PhoneClaw works fully offline without it.
+</Note>
+
+## Build configuration
+
+The PhoneClaw build is configured in `build.gradle.kts`:
+
+```kotlin build.gradle.kts
+android {
+    compileSdk = 35
+    
+    defaultConfig {
+        applicationId = "com.example.universal"
+        minSdk = 26  // Android 8.0+
+        targetSdk = 35
+        versionCode = 1
+        versionName = "1.0"
+    }
+    
+    buildTypes {
+        release {
+            // Configure Moondream auth from properties
+            buildConfigField(
+                "String",
+                "MOONDREAM_AUTH",
+                "\"${project.findProperty("MOONDREAM_AUTH") ?: ""}\""
+            )
+        }
+    }
+}
+```
+
+## Troubleshooting installation
+
+<AccordionGroup>
+  <Accordion title="Build fails with 'MOONDREAM_AUTH not found'">
+    This means the Moondream token isn't configured:
+    
+    1. Create `local.properties` in project root
+    2. Add: `MOONDREAM_AUTH=your_token_here`
+    3. Rebuild the APK
+    
+    Alternatively, set it in `~/.gradle/gradle.properties`
+  </Accordion>
+
+  <Accordion title="APK installation blocked">
+    If installation is blocked:
+    
+    1. **Settings > Security > Install unknown apps**
+    2. Enable for your file manager or browser
+    3. Try installing again
+    
+    On some Samsung devices:
+    1. **Settings > Biometrics and Security**
+    2. **Install unknown apps**
+    3. Select your app and enable
+  </Accordion>
+
+  <Accordion title="Accessibility service won't enable">
+    If you can't enable the accessibility service:
+    
+    1. Restart your device
+    2. Uninstall and reinstall PhoneClaw
+    3. Check if other accessibility services are conflicting
+    4. Ensure you have Android 8.0 or higher
+  </Accordion>
+
+  <Accordion title="ADB device not found">
+    If `adb devices` shows no devices:
+    
+    1. Enable USB debugging on device
+    2. Accept the USB debugging authorization
+    3. Try a different USB cable
+    4. Install device-specific USB drivers
+    5. Run: `adb kill-server && adb start-server`
+  </Accordion>
+
+  <Accordion title="Gradle sync fails">
+    If Android Studio can't sync Gradle:
+    
+    1. Check your internet connection
+    2. Update Android Studio to latest version
+    3. File > Invalidate Caches > Invalidate and Restart
+    4. Delete `.gradle` folder and sync again
+  </Accordion>
+
+  <Accordion title="App crashes on first launch">
+    Common causes and fixes:
+    
+    1. **Missing Moondream token**: Rebuild with token configured
+    2. **Android version too old**: Requires Android 8.0+
+    3. **Corrupted APK**: Rebuild and reinstall
+    4. **Conflicting apps**: Uninstall other automation apps
+    
+    Check logcat for detailed error:
+    ```bash
+    adb logcat | grep "AndroidRuntime\|PhoneClaw"
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Advanced installation
+
+### Custom build variants
+
+Create a release build with optimization:
+
+```bash
+./gradlew assembleRelease
+```
+
+### Signing the APK
+
+For distribution, sign the APK:
+
+1. Generate a keystore:
+   ```bash
+   keytool -genkey -v -keystore phoneclaw.keystore \
+     -alias phoneclaw -keyalg RSA -keysize 2048 -validity 10000
+   ```
+
+2. Configure signing in `build.gradle.kts`:
+   ```kotlin
+   android {
+       signingConfigs {
+           release {
+               storeFile = file("phoneclaw.keystore")
+               storePassword = "your_password"
+               keyAlias = "phoneclaw"
+               keyPassword = "your_password"
+           }
+       }
+   }
+   ```
+
+3. Build signed APK:
+   ```bash
+   ./gradlew assembleRelease
+   ```
+
+### Multi-device deployment
+
+Install on multiple devices:
+
+```bash
+# List connected devices
+adb devices
+
+# Install on specific device
+adb -s <device_id> install app-debug.apk
+
+# Install on all connected devices
+for device in $(adb devices | awk 'NR>1 {print $1}'); do
+  adb -s $device install -r app-debug.apk
+done
+```
+
+## Next steps
+
+Now that PhoneClaw is installed:
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Run your first automation in 5 minutes
+  </Card>
+  <Card title="ClawScript basics" icon="book" href="/concepts/clawscript">
+    Learn the fundamentals of ClawScript
+  </Card>
+  <Card title="Voice commands" icon="microphone" href="/guides/voice-commands">
+    Master voice-driven automation generation
+  </Card>
+  <Card title="Example scripts" icon="code" href="/examples/social-media">
+    Browse pre-built automation examples
+  </Card>
+</CardGroup>
+
+## Need help?
+
+Join the PhoneClaw community:
+
+- **Discord**: [https://discord.gg/n9nbZUrw](https://discord.gg/n9nbZUrw)
+- **YouTube**: [https://www.youtube.com/@getsuperpowers](https://www.youtube.com/@getsuperpowers)
+- **Twitter Community**: [Join us](https://x.com/i/communities/2026071470741635468)

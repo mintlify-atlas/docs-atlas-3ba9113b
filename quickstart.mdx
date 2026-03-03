@@ -1,80 +1,282 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: Quickstart
+description: Get PhoneClaw running your first automation in 5 minutes
 ---
 
-## Get started in three steps
+# Quickstart
 
-Get your documentation site running locally and make your first customization.
+Get PhoneClaw up and running with your first automation in just a few minutes.
 
-### Step 1: Set up your local environment
+## Prerequisites
 
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
+<Warning>
+  You'll need an Android device with developer mode enabled. PhoneClaw does not require root access.
+</Warning>
+
+Before starting, make sure you have:
+
+- Android device (recommended: Moto G Play, $30 at Walmart)
+- Computer with Android Studio installed
+- PhoneClaw source code from GitHub
+- Moondream auth token (for vision features)
+
+## Quick setup
+
+<Steps>
+  <Step title="Enable developer mode">
+    On your Android device:
     
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
+    1. Go to **Settings > About Phone**
+    2. Tap **Build Number** 7 times
+    3. Go back to **Settings > Developer Options**
+    4. Enable **USB Debugging**
     
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
+    <Note>
+      The exact menu location varies by manufacturer, but the process is similar across all Android devices.
+    </Note>
+  </Step>
 
-### Step 2: Deploy your changes
-
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
+  <Step title="Build the APK">
+    On your computer with Android Studio:
     
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
+    1. Open the PhoneClaw repository in Android Studio
+    2. Click **Build > Generate Bundles or APKs > Generate APKs**
+    3. Wait for the build to complete
+    4. Find the APK in `app/build/outputs/apk/debug/`
+    
+    <CodeGroup>
+    ```bash Terminal
+    # Or build from command line
+    cd phoneclaw
+    ./gradlew assembleDebug
+    ```
+    </CodeGroup>
+  </Step>
 
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
+  <Step title="Install on device">
+    Transfer the APK to your Android device:
+    
+    **Option A: USB Transfer**
+    ```bash
+    adb install app/build/outputs/apk/debug/app-debug.apk
+    ```
+    
+    **Option B: Manual Transfer**
+    1. Copy the APK to your device via USB or cloud storage
+    2. Open the APK file on your device
+    3. Click **Install** when prompted
+    4. Allow installation from unknown sources if requested
+  </Step>
 
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
+  <Step title="Configure Moondream token">
+    Before building, add your Moondream auth token:
+    
+    Create or edit `local.properties` in the project root:
+    
+    ```properties local.properties
+    MOONDREAM_AUTH=YOUR_TOKEN_HERE
+    ```
+    
+    Or add to `~/.gradle/gradle.properties`:
+    
+    ```properties ~/.gradle/gradle.properties
+    MOONDREAM_AUTH=YOUR_TOKEN_HERE
+    ```
+    
+    <Note>
+      Get your Moondream token from [moondream.ai](https://moondream.ai). This is required for vision-assisted element detection.
+    </Note>
+  </Step>
 
-### Step 3: Go live
+  <Step title="Enable accessibility service">
+    On your Android device after installing:
+    
+    1. Open **PhoneClaw** app
+    2. Grant all requested permissions
+    3. Go to **Settings > Accessibility**
+    4. Find **PhoneClaw** in the list
+    5. Enable the accessibility service
+    
+    <Warning>
+      The accessibility service is required for PhoneClaw to interact with other apps. Without it, automations won't work.
+    </Warning>
+  </Step>
+</Steps>
 
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
+## Your first automation
+
+Now let's create your first automation using voice commands:
+
+<Steps>
+  <Step title="Open PhoneClaw">
+    Launch the PhoneClaw app on your device. You should see the main interface with a microphone button.
+  </Step>
+
+  <Step title="Tap to speak">
+    Tap the **microphone button** and say:
+    
+    > "Open Twitter and click the blue post button every hour"
+    
+    PhoneClaw will:
+    - Generate a ClawScript for this automation
+    - Schedule it to run hourly
+    - Output the script file for editing
+  </Step>
+
+  <Step title="Watch it run">
+    The automation will execute immediately. You'll see:
+    - PhoneClaw opening Twitter
+    - Finding the post button using vision
+    - Clicking it
+    - Scheduling the next run
+    
+    <Note>
+      Voice feedback will confirm each step. You can view the generated ClawScript in the app interface.
+    </Note>
+  </Step>
+</Steps>
+
+## Understanding the generated script
+
+Here's what PhoneClaw generated for the Twitter automation:
+
+```javascript
+// Launch Twitter
+launchTwitter();
+delay(5000);
+
+// Use vision to find and click the post button
+magicClicker("Blue post button");
+delay(2000);
+
+// Schedule to run every hour
+schedule("twitter-post", "0 * * * *");
+
+speakText("Twitter automation scheduled");
+```
+
+### Key ClawScript functions used:
+
+- `launchTwitter()` - Opens the Twitter app
+- `delay(ms)` - Waits for the specified milliseconds
+- `magicClicker(description)` - Finds and taps UI elements by description
+- `schedule(task, cronExpression)` - Sets up recurring automation
+- `speakText(text)` - Provides audio feedback
+
+## Try more automations
+
+Now that you've run your first automation, try these voice commands:
+
+<CardGroup cols={2}>
+  <Card title="Screenshot and share">
+    "Take a screenshot and send it via email every morning at 9am"
+  </Card>
+  <Card title="Social media posting">
+    "Upload the latest video from my gallery to TikTok"
+  </Card>
+  <Card title="Form filling">
+    "Fill out the signup form with my email and password"
+  </Card>
+  <Card title="Cross-app workflow">
+    "Check email, extract the code, and paste it into the verification field"
+  </Card>
+</CardGroup>
+
+## Editing scripts manually
+
+You can also write ClawScript manually for more control:
+
+```javascript
+// Example: Instagram automation
+speakText("Starting Instagram upload");
+
+launchInstagram();
+delay(5000);
+
+// Click the creation tab
+clickElementByViewId("com.instagram.android:id/creation_tab");
+delay(3000);
+
+// Select first media item
+magicClicker("First photo in gallery");
+delay(2000);
+
+// Click Next
+magicClicker("Next button");
+delay(3000);
+
+// Type caption
+magicClicker("Write a caption");
+delay(1000);
+simulateTypeInFirstEditableField("Check out my latest post! #automation");
+
+// Share
+magicClicker("Share button");
+delay(5000);
+
+speakText("Posted to Instagram successfully");
+```
 
 ## Next steps
 
-Now that you have your docs running, explore these key features:
-
 <CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
+  <Card title="ClawScript API" icon="book" href="/api/overview">
+    Learn all available helper functions
+  </Card>
+  <Card title="Example Scripts" icon="code" href="/examples/social-media">
+    Browse pre-built automation examples
+  </Card>
+  <Card title="Scheduling" icon="clock" href="/guides/scheduling-tasks">
+    Master cron expressions for recurring tasks
+  </Card>
+  <Card title="Vision Features" icon="eye" href="/concepts/vision-targeting">
+    Deep dive into magicClicker and magicScraper
+  </Card>
 </CardGroup>
 
-<Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
-</Note>
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Accessibility service not working">
+    If automations aren't executing:
+    
+    1. Go to **Settings > Accessibility > PhoneClaw**
+    2. Disable and re-enable the service
+    3. Restart the PhoneClaw app
+    4. Check if other accessibility services are conflicting
+  </Accordion>
+
+  <Accordion title="Vision features not working">
+    If magicClicker or magicScraper fail:
+    
+    1. Verify your Moondream token is correct in `local.properties`
+    2. Rebuild the APK after adding the token
+    3. Check device internet connectivity
+    4. Try more specific descriptions (e.g., "Blue submit button in bottom right" vs "Submit")
+  </Accordion>
+
+  <Accordion title="App crashes on launch">
+    Common fixes:
+    
+    1. Clear app data: **Settings > Apps > PhoneClaw > Clear Data**
+    2. Reinstall the APK
+    3. Check Android version compatibility (requires Android 8.0+)
+    4. Review logcat output for specific errors
+  </Accordion>
+
+  <Accordion title="Scheduled tasks not running">
+    If cron jobs aren't executing:
+    
+    1. Verify the cron expression is valid
+    2. Check if battery optimization is disabled for PhoneClaw
+    3. Ensure the device isn't in Doze mode
+    4. Review the scheduled tasks list in the app
+  </Accordion>
+</AccordionGroup>
+
+## Get help
+
+Stuck? Join the community:
+
+- **Discord**: [https://discord.gg/n9nbZUrw](https://discord.gg/n9nbZUrw)
+- **YouTube tutorials**: [https://www.youtube.com/@getsuperpowers](https://www.youtube.com/@getsuperpowers)

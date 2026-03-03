@@ -1,0 +1,462 @@
+---
+title: "Utility Functions"
+description: "Helper functions for common automation tasks and data manipulation"
+---
+
+## Overview
+
+PhoneClaw provides a suite of utility functions that complement the vision-based automation features. These functions handle common tasks like delays, text-to-speech, app launching, and data manipulation.
+
+## Delay Functions
+
+### delay()
+
+Pause script execution for a specified duration.
+
+```javascript
+delay(milliseconds)
+```
+
+<ParamField path="milliseconds" type="Number" required>
+  Duration to wait in milliseconds (1000ms = 1 second)
+</ParamField>
+
+**Examples:**
+
+```javascript
+// Wait 2 seconds
+delay(2000);
+
+// Wait for animation to complete
+Android.magicClicker("Menu button");
+delay(1500);
+Android.magicClicker("Settings option");
+
+// Wait between automation steps
+Android.launchTikTok();
+delay(3000); // Let app fully load
+Android.magicClicker("Search icon");
+```
+
+## Text-to-Speech
+
+### speakText()
+
+Provide voice feedback during automation.
+
+```javascript
+Android.speakText(text)
+```
+
+<ParamField path="text" type="String" required>
+  The text to speak aloud via device text-to-speech engine
+</ParamField>
+
+**Examples:**
+
+```javascript
+// Simple feedback
+Android.speakText("Starting automation");
+
+// Status updates
+var battery = Android.magicScraper("battery percentage");
+Android.speakText("Battery level is " + battery);
+
+// Error notifications
+if (result.startsWith("Error")) {
+    Android.speakText("Operation failed, please check the device");
+}
+
+// Progress tracking
+Android.speakText("Step one complete");
+delay(1000);
+Android.speakText("Moving to step two");
+```
+
+## App Launching
+
+### launchTikTok()
+
+Launch the TikTok application.
+
+```kotlin
+fun launchTikTok()
+```
+
+**Example:**
+
+```javascript
+// Launch and interact with TikTok
+Android.launchTikTok();
+delay(3000);
+Android.magicClicker("Search button");
+```
+
+**Package**: `com.zhiliaoapp.musically`
+
+### launchGmail()
+
+Launch the Gmail application.
+
+```kotlin
+fun launchGmail()
+```
+
+**Example:**
+
+```javascript
+// Launch Gmail and compose email
+Android.launchGmail();
+delay(3000);
+Android.magicClicker("Compose button in the bottom right corner");
+```
+
+**Package**: `com.google.android.gm`
+
+<Note>
+  Both launch functions check if the app is installed and provide voice feedback if not found.
+</Note>
+
+## Email Automation
+
+### sendEmail()
+
+Automated email composition workflow (experimental).
+
+```kotlin
+fun sendEmail(to: String, subject: String, body: String)
+```
+
+<ParamField path="to" type="String" required>
+  Recipient email address
+</ParamField>
+
+<ParamField path="subject" type="String" required>
+  Email subject line
+</ParamField>
+
+<ParamField path="body" type="String" required>
+  Email body content
+</ParamField>
+
+**Example:**
+
+```javascript
+Android.sendEmail(
+    "user@example.com",
+    "Automation Report",
+    "The automation completed successfully."
+);
+```
+
+<Warning>
+  This is an experimental function that uses vision-based clicking and may need adjustment based on your Gmail version and layout.
+</Warning>
+
+**How it works:**
+1. Launches Gmail
+2. Uses `magicClicker()` to find compose button
+3. Types recipient in editable field
+4. Types body in text area
+5. Waits with built-in delays between steps
+
+## Data Parsing
+
+While there's no built-in `safeInt()` function in the current implementation, you can safely parse integers using JavaScript:
+
+### Safe Integer Parsing
+
+```javascript
+function safeInt(value, defaultVal) {
+    var parsed = parseInt(value);
+    return isNaN(parsed) ? defaultVal : parsed;
+}
+
+// Usage with magicScraper
+var battery = Android.magicScraper("battery percentage");
+var batteryLevel = safeInt(battery, 0);
+
+if (batteryLevel < 20) {
+    Android.speakText("Low battery warning");
+}
+```
+
+### Parsing Scraped Data
+
+```javascript
+// Extract numbers from text
+function extractNumber(text) {
+    var match = text.match(/\d+/);
+    return match ? parseInt(match[0]) : 0;
+}
+
+var notificationText = Android.magicScraper("notification count");
+var count = extractNumber(notificationText);
+console.log("Notifications: " + count);
+
+// Extract time
+function parseTime(timeStr) {
+    var match = timeStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/);
+    if (match) {
+        return {
+            hour: parseInt(match[1]),
+            minute: parseInt(match[2]),
+            period: match[3]
+        };
+    }
+    return null;
+}
+
+var currentTime = Android.magicScraper("current time");
+var time = parseTime(currentTime);
+console.log("Hour: " + time.hour + ", Minute: " + time.minute);
+```
+
+## String Utilities
+
+### Common String Operations
+
+```javascript
+// Clean scraped text
+function cleanText(text) {
+    return text.trim()
+               .replace(/\s+/g, ' ')
+               .replace(/[^a-zA-Z0-9\s]/g, '');
+}
+
+// Check if scraped data is valid
+function isValidData(data) {
+    return data && 
+           !data.startsWith("Error:") && 
+           data.length > 0 &&
+           data !== "Not found";
+}
+
+// Usage
+var appName = Android.magicScraper("current app name");
+if (isValidData(appName)) {
+    var cleaned = cleanText(appName);
+    console.log("App: " + cleaned);
+}
+```
+
+## Accessibility Helpers
+
+### Direct Click (Coordinate-Based)
+
+For when you know exact coordinates:
+
+```javascript
+// Using AccessibilityService directly
+// Note: Requires MyAccessibilityService to be enabled
+
+// Click at specific coordinates
+MyAccessibilityService.instance?.simulateClick(430f, 530f);
+
+// Type in editable fields
+MyAccessibilityService.instance?.simulateTypeInSecondEditableField("text");
+MyAccessibilityService.instance?.simulateTypeInThirdEditableField("more text");
+```
+
+<Warning>
+  Direct coordinate clicking is less flexible than `magicClicker()` and may break if UI layout changes.
+</Warning>
+
+## Device Information
+
+### Get Device Details
+
+While not directly exposed as utility functions, PhoneClaw tracks device information:
+
+```javascript
+// These are tracked internally:
+// - Device ID (Android ID)
+// - Manufacturer, Model, Brand
+// - Android Version, SDK Level
+// - Local IP Address
+// - Public IP and geolocation
+// - Battery status
+// - WiFi connection state
+```
+
+To access this data, use `magicScraper()`:
+
+```javascript
+var deviceInfo = {
+    battery: Android.magicScraper("battery percentage"),
+    time: Android.magicScraper("current time"),
+    wifi: Android.magicScraper("WiFi network name"),
+    app: Android.magicScraper("current app name")
+};
+
+console.log(JSON.stringify(deviceInfo));
+```
+
+## Logging and Debugging
+
+### Console Logging
+
+```javascript
+// Standard JavaScript console
+console.log("Automation started");
+console.error("Failed to find element");
+console.warn("Low battery detected");
+
+// Structured logging
+function logAction(action, status, details) {
+    var timestamp = new Date().toISOString();
+    console.log(timestamp + " | " + action + " | " + status + " | " + details);
+}
+
+logAction("magicClicker", "SUCCESS", "Clicked submit button");
+logAction("magicScraper", "SUCCESS", "Battery: 75%");
+```
+
+### Voice Logging
+
+```javascript
+// Combine logging with voice feedback
+function logAndSpeak(message) {
+    console.log(message);
+    Android.speakText(message);
+}
+
+logAndSpeak("Automation complete");
+```
+
+## Error Handling Utilities
+
+### Retry Logic
+
+```javascript
+function retryOperation(operation, maxRetries, delayMs) {
+    for (var i = 0; i < maxRetries; i++) {
+        try {
+            var result = operation();
+            if (isValidData(result)) {
+                return result;
+            }
+        } catch (e) {
+            console.error("Attempt " + (i + 1) + " failed: " + e);
+        }
+        
+        if (i < maxRetries - 1) {
+            delay(delayMs);
+        }
+    }
+    return null;
+}
+
+// Usage
+var battery = retryOperation(
+    function() {
+        return Android.magicScraper("battery percentage");
+    },
+    3,  // Try 3 times
+    2000 // Wait 2 seconds between attempts
+);
+```
+
+### Timeout Wrapper
+
+```javascript
+function withTimeout(operation, timeoutMs, timeoutResult) {
+    var startTime = Date.now();
+    var result = operation();
+    var elapsed = Date.now() - startTime;
+    
+    if (elapsed > timeoutMs) {
+        console.warn("Operation took " + elapsed + "ms (timeout: " + timeoutMs + "ms)");
+        return timeoutResult;
+    }
+    
+    return result;
+}
+```
+
+## Best Practices
+
+<Tip>
+  **Use Adequate Delays**: Always add delays after navigation, app launches, or UI changes to ensure elements are loaded.
+</Tip>
+
+<Tip>
+  **Voice Feedback**: Use `speakText()` for important status updates, especially for long-running automations.
+</Tip>
+
+<Warning>
+  **Validate Data**: Always check scraped data before using it in conditional logic or calculations.
+</Warning>
+
+### Recommended Delay Times
+
+- **After app launch**: 3000ms (3 seconds)
+- **After button click**: 1000-1500ms (1-1.5 seconds)
+- **After navigation**: 2000ms (2 seconds)
+- **After typing**: 500-1000ms (0.5-1 second)
+
+## Complete Automation Example
+
+```javascript
+function sendAutomatedEmail(recipient, subject, message) {
+    try {
+        // Launch Gmail
+        Android.speakText("Opening Gmail");
+        Android.launchGmail();
+        delay(3000);
+        
+        // Compose new email
+        Android.speakText("Composing email");
+        Android.magicClicker("Compose button in the bottom right corner");
+        delay(2000);
+        
+        // Fill in recipient
+        MyAccessibilityService.instance?.simulateTypeInSecondEditableField(recipient);
+        delay(1000);
+        
+        // Click subject field
+        Android.magicClicker("Subject field");
+        delay(500);
+        
+        // Type subject
+        MyAccessibilityService.instance?.simulateTypeInThirdEditableField(subject);
+        delay(1000);
+        
+        // Click body field
+        Android.magicClicker("Email body area");
+        delay(500);
+        
+        // Type message
+        MyAccessibilityService.instance?.simulateTypeInThirdEditableField(message);
+        delay(1000);
+        
+        // Send
+        Android.magicClicker("Send button");
+        Android.speakText("Email sent successfully");
+        
+        return true;
+    } catch (e) {
+        Android.speakText("Email sending failed");
+        console.error("Error: " + e);
+        return false;
+    }
+}
+
+// Use the function
+sendAutomatedEmail(
+    "contact@example.com",
+    "Automation Test",
+    "This email was sent automatically by PhoneClaw."
+);
+```
+
+## Related Functions
+
+- [`magicClicker()`](/api/magic-clicker) - Vision-based UI clicking
+- [`magicScraper()`](/api/magic-scraper) - Vision-based data extraction
+
+## See Also
+
+- [Multi-App Workflows Guide](/guides/multi-app-workflows)
+- [First Automation Guide](/guides/first-automation)
+- [Troubleshooting & Debugging](/troubleshooting/debugging)

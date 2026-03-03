@@ -1,0 +1,188 @@
+---
+title: 'Speech Synthesis'
+description: 'Text-to-speech functionality for voice feedback'
+icon: 'microphone'
+---
+
+## speakText()
+
+Converts text to speech using Android's Text-to-Speech (TTS) engine. This is the primary method for providing voice feedback during automation.
+
+<ParamField path="text" type="string" required>
+  The text to speak. Supports plain text only.
+</ParamField>
+
+<ResponseField name="return" type="void">
+  This function does not return a value.
+</ResponseField>
+
+### Basic Usage
+
+```javascript
+// Speak a simple message
+Android.speakText("Hello, world!");
+
+// Provide status updates
+Android.speakText("Starting automation workflow");
+
+// Announce errors
+Android.speakText("Error: Unable to find element");
+```
+
+### Practical Examples
+
+<CodeGroup>
+
+```javascript Status Updates
+// Automation progress feedback
+Android.speakText("Opening Instagram");
+Android.delay(2000);
+
+Android.speakText("Logging in");
+Android.delay(3000);
+
+Android.speakText("Login successful");
+```
+
+```javascript Error Handling
+// Speak errors during automation
+try {
+  Android.simulateClick(100, 200);
+  Android.speakText("Button clicked successfully");
+} catch (e) {
+  Android.speakText("Failed to click button: " + e.message);
+}
+```
+
+```javascript Dynamic Content
+// Speak dynamic values
+const username = "john_doe";
+Android.speakText("Logged in as " + username);
+
+const count = 5;
+Android.speakText("Found " + count + " new messages");
+```
+
+</CodeGroup>
+
+## Implementation Details
+
+### Source Location
+
+`MainActivity.kt:4936`
+
+```kotlin
+@JavascriptInterface
+fun speakText(text: String) {
+    this@MainActivity.speakText(text)
+}
+```
+
+### TTS Engine
+
+The function uses Android's built-in `TextToSpeech` service, which:
+
+- Initializes on app startup
+- Supports multiple languages (based on device settings)
+- Queues messages if multiple calls are made rapidly
+- Requires `TextToSpeech.OnInitListener` callback
+
+<Info>
+  Speech synthesis is asynchronous. The function returns immediately while the device speaks in the background.
+</Info>
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Keep messages concise">
+    Short messages (under 10 words) are easier to understand and don't delay automation flow.
+    
+    ```javascript
+    // Good
+    Android.speakText("Task complete");
+    
+    // Avoid
+    Android.speakText("The automated task has successfully completed execution and all steps have been performed without any errors occurring during the process");
+    ```
+  </Accordion>
+
+  <Accordion title="Add delays after speech">
+    If critical timing is needed, add a delay after `speakText()` to ensure the message completes.
+    
+    ```javascript
+    Android.speakText("Please wait");
+    Android.delay(1500); // Wait for speech to finish
+    ```
+  </Accordion>
+
+  <Accordion title="Use for debugging">
+    Speech is invaluable for debugging automations on remote devices where you can't see the screen.
+    
+    ```javascript
+    Android.speakText("Checkpoint 1 reached");
+    // ... automation code ...
+    Android.speakText("Checkpoint 2 reached");
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Common Use Cases
+
+### Workflow Status
+
+Announce each step of a multi-step automation:
+
+```javascript
+Android.speakText("Starting login flow");
+Android.simulateTypeInFirstEditableField("user@example.com");
+
+Android.speakText("Entering password");
+Android.simulateTypeInSecondEditableField("password123");
+
+Android.speakText("Submitting form");
+Android.pressEnterKey();
+```
+
+### Debug Mode
+
+Provide verbose feedback during development:
+
+```javascript
+const DEBUG = true;
+
+function debugLog(message) {
+  if (DEBUG) {
+    Android.speakText("Debug: " + message);
+  }
+}
+
+debugLog("Starting automation");
+Android.simulateClick(100, 200);
+debugLog("Click performed");
+```
+
+### User Notifications
+
+Alert users to important events:
+
+```javascript
+const newMessages = 3;
+if (newMessages > 0) {
+  Android.speakText("You have " + newMessages + " new messages");
+}
+```
+
+## Limitations
+
+<Warning>
+  - Speech language depends on device TTS engine settings
+  - Some devices may not have TTS engines installed
+  - Speech output may be muted if device volume is low
+  - Multiple rapid calls queue up rather than interrupting
+</Warning>
+
+## Related Functions
+
+- [delay()](/api/timing) - Add pauses after speech
+- [schedule()](/api/scheduling) - Schedule recurring voice announcements
+- [sendAgentEmail()](/api/notifications) - Alternative notification method

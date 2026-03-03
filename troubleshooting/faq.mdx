@@ -1,0 +1,555 @@
+---
+title: "Frequently Asked Questions"
+description: "Answers to common questions about PhoneClaw setup, usage, and features"
+---
+
+## General Questions
+
+<AccordionGroup>
+  <Accordion title="What is PhoneClaw?">
+    PhoneClaw is an Android automation app that runs on-device workflows using **ClawScript**, a JavaScript-based scripting language. It allows you to automate complex multi-app workflows on Android devices using natural language descriptions and vision-assisted UI targeting.
+
+    Key features:
+    - Generate automation scripts at runtime
+    - Vision-based UI element targeting
+    - Voice command support
+    - Cron-based scheduling
+    - Multi-app workflow chaining
+  </Accordion>
+
+  <Accordion title="What Android version is required?">
+    PhoneClaw requires Android 7.0 (API level 24) or higher. For best results, we recommend Android 9.0 or newer.
+
+    Tested devices:
+    - Budget phones like Moto G Play ($30) work great
+    - Most modern Android smartphones and tablets
+    - Some features may have limitations on older devices
+  </Accordion>
+
+  <Accordion title="Does PhoneClaw require root access?">
+    No, PhoneClaw does **not** require root access. It uses Android's built-in Accessibility Service API, which is available on all non-rooted devices.
+
+    You only need to:
+    - Enable Developer Options (no root needed)
+    - Grant Accessibility Service permission
+    - Allow installation from unknown sources for sideloading
+  </Accordion>
+
+  <Accordion title="Is PhoneClaw free and open source?">
+    Yes! PhoneClaw is completely free and open source under an MIT-style license. You can:
+    - Use it for personal or commercial purposes
+    - View and modify the source code
+    - Contribute improvements back to the project
+    - Build custom versions for your needs
+
+    View the source code on [GitHub](https://github.com/rohanarun/phoneclaw).
+  </Accordion>
+
+  <Accordion title="What API keys do I need?">
+    PhoneClaw requires:
+    - **Moondream API token** for vision-based UI targeting (magicClicker/magicScraper)
+
+    Optional:
+    - **OpenRouter API key** for advanced AI model selection
+    - **Email credentials** if using sendAgentEmail function
+
+    Add your keys to `local.properties`:
+    ```properties
+    MOONDREAM_AUTH=your_token_here
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Installation and Setup
+
+<AccordionGroup>
+  <Accordion title="How do I install PhoneClaw?">
+    **Installation steps:**
+
+    1. Download Android Studio and clone the [repository](https://github.com/rohanarun/phoneclaw)
+    2. Open the project in Android Studio
+    3. Go to **Build** > **Generate Bundles/APKs** > **Generate APK**
+    4. Transfer the APK to your Android device
+    5. Enable "Install from Unknown Sources" in Settings
+    6. Install the APK
+    7. Grant Accessibility Service permission when prompted
+
+    Alternatively, download pre-built APKs from GitHub releases (when available).
+  </Accordion>
+
+  <Accordion title="Why can't I find PhoneClaw on Google Play Store?">
+    PhoneClaw is not available on the Google Play Store. It must be sideloaded because:
+    - It uses advanced Accessibility Service features
+    - It's designed for power users and developers
+    - Open source development model
+
+    You can safely sideload the APK by building from source or downloading from official GitHub releases.
+  </Accordion>
+
+  <Accordion title="How do I enable Accessibility Service?">
+    **Steps to enable Accessibility Service:**
+
+    1. Open Android **Settings**
+    2. Navigate to **Accessibility** (may be under "System" or search for it)
+    3. Find **PhoneClaw** in the list of services
+    4. Toggle it **ON**
+    5. Read and accept the permission warning
+    6. Verify it shows as "ON"
+
+    **Troubleshooting:**
+    - If PhoneClaw doesn't appear, reinstall the app
+    - Some manufacturers hide accessibility settings in different locations
+    - Disable battery optimization for PhoneClaw to prevent service from stopping
+  </Accordion>
+
+  <Accordion title="Which budget Android phone should I buy?">
+    **Recommended budget option:**
+    - **Moto G Play** (~$30 USD at Walmart) - used in all demo videos
+
+    **Minimum specifications:**
+    - Android 7.0 or higher
+    - 2GB RAM (3GB+ recommended)
+    - 16GB storage (32GB+ recommended)
+
+    **What matters:**
+    - Screen size (larger = easier for vision targeting)
+    - RAM (more = better for multiple apps)
+    - Battery capacity (for scheduled automations)
+
+    Avoid devices with heavy manufacturer customization (some MIUI, EMUI versions) as they may have restrictions.
+  </Accordion>
+</AccordionGroup>
+
+## Using PhoneClaw
+
+<AccordionGroup>
+  <Accordion title="How do I create my first automation?">
+    **Quick start:**
+
+    1. Open PhoneClaw
+    2. Use voice command: "Open Twitter and click the blue post button every hour"
+    3. PhoneClaw generates a ClawScript automation
+    4. Review and edit the generated script if needed
+    5. The automation will run according to the schedule
+
+    **Or manually write ClawScript:**
+    ```javascript
+    // Open Twitter
+    await magicClicker("Twitter app icon");
+    await delay(2000);
+
+    // Click post button
+    await magicClicker("blue compose button");
+    speakText("Clicked post button");
+
+    // Schedule to run every hour
+    schedule("twitter-post", "0 * * * *");
+    ```
+
+    See the [First Automation Guide](/guides/first-automation) for detailed walkthrough.
+  </Accordion>
+
+  <Accordion title="What is ClawScript?">
+    **ClawScript** is a JavaScript-based scripting language that runs inside PhoneClaw using an embedded JS engine.
+
+    **Key features:**
+    - Standard JavaScript syntax
+    - Helper functions for automation (magicClicker, magicScraper, etc.)
+    - Direct access to Android Accessibility Service
+    - Support for async/await
+    - Runtime script generation and execution
+
+    **Example:**
+    ```javascript
+    speakText("Starting automation");
+    await magicClicker("Login button");
+    await delay(2000);
+    const code = await magicScraper("The verification code");
+    speakText("Code is: " + code);
+    ```
+
+    Learn more in the [ClawScript documentation](/concepts/clawscript).
+  </Accordion>
+
+  <Accordion title="How does magicClicker find UI elements?">
+    **magicClicker** uses vision AI to locate and tap UI elements based on natural language descriptions:
+
+    1. Takes a screenshot of the current screen
+    2. Sends the screenshot and your description to vision AI
+    3. Vision AI identifies the matching UI element
+    4. Calculates tap coordinates
+    5. Uses Accessibility Service to tap the element
+
+    **Best practices:**
+    - Be specific: "blue login button at bottom" > "button"
+    - Include visual cues: colors, positions, icons
+    - Ensure element is visible on screen
+    - Add delays for UI loading
+
+    **Example:**
+    ```javascript
+    await magicClicker("red rectangular submit button at bottom right");
+    ```
+  </Accordion>
+
+  <Accordion title="How does magicScraper extract data?">
+    **magicScraper** uses vision AI to read and extract specific information from the screen:
+
+    1. Takes a screenshot
+    2. Sends screenshot and your question to vision AI
+    3. AI analyzes the image and extracts the requested information
+    4. Returns the answer as a string
+
+    **Use cases:**
+    - Reading verification codes
+    - Extracting prices or numbers
+    - Checking status messages
+    - Reading form values
+
+    **Example:**
+    ```javascript
+    const otp = await magicScraper("What is the 6-digit code in the SMS?");
+    speakText("OTP code: " + otp);
+    ```
+  </Accordion>
+
+  <Accordion title="Can PhoneClaw automate apps that block accessibility?">
+    Some apps actively block or limit Accessibility Service interactions for security reasons:
+
+    **Apps that may block automation:**
+    - Banking apps
+    - Payment apps
+    - Password managers
+    - Some security-focused apps
+
+    **Workarounds:**
+    - Vision-based targeting (magicClicker) works on most apps
+    - Some apps only block specific accessibility features
+    - Test your target app before building complex automations
+    - Consider alternative approaches (web version, APIs)
+
+    **Legal note:** Always respect app terms of service and use automation responsibly.
+  </Accordion>
+
+  <Accordion title="How do I schedule recurring automations?">
+    Use the `schedule()` function with cron expressions:
+
+    ```javascript
+    // Every hour at minute 0
+    schedule("hourly-task", "0 * * * *");
+
+    // Every day at 9 AM
+    schedule("morning-task", "0 9 * * *");
+
+    // Every 5 minutes
+    schedule("frequent-task", "*/5 * * * *");
+
+    // Every Monday at 8 AM
+    schedule("weekly-task", "0 8 * * 1");
+    ```
+
+    **Requirements:**
+    - Disable battery optimization for PhoneClaw
+    - Keep accessibility service enabled
+    - Device should not be in deep sleep during scheduled time
+
+    Use [crontab.guru](https://crontab.guru/) to build cron expressions.
+  </Accordion>
+</AccordionGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Why aren't my automations working?">
+    **Common causes:**
+
+    1. **Accessibility service disabled**
+       - Check Settings > Accessibility > PhoneClaw
+
+    2. **UI elements not loading**
+       - Add delays: `await delay(2000);`
+
+    3. **Vague element descriptions**
+       - Be more specific: "blue login button" vs "button"
+
+    4. **App blocking automation**
+       - Test with different apps
+       - Some apps actively prevent accessibility interactions
+
+    5. **Battery optimization killing service**
+       - Disable battery optimization for PhoneClaw
+
+    See [Common Issues](/troubleshooting/common-issues) for detailed solutions.
+  </Accordion>
+
+  <Accordion title="Why do scheduled tasks stop running?">
+    **Reasons and solutions:**
+
+    1. **Battery optimization** (most common)
+       - Settings > Battery > PhoneClaw > Don't optimize
+
+    2. **Accessibility service auto-disabled**
+       - Add PhoneClaw to protected apps list (manufacturer-specific)
+
+    3. **Device in deep sleep**
+       - Keep device charging or adjust sleep settings
+
+    4. **Invalid cron expression**
+       - Validate at [crontab.guru](https://crontab.guru/)
+
+    5. **Manufacturer restrictions** (Xiaomi, Huawei, Samsung)
+       - Enable autostart permissions
+       - Disable background restrictions
+
+    See [Common Issues - Scheduling](/troubleshooting/common-issues#scheduling-problems) for detailed steps.
+  </Accordion>
+
+  <Accordion title="How do I debug my ClawScript?">
+    **Debugging techniques:**
+
+    1. **Use speakText for logging:**
+    ```javascript
+    speakText("Starting step 1");
+    await magicClicker("Button");
+    speakText("Completed step 1");
+    ```
+
+    2. **Add error handling:**
+    ```javascript
+    try {
+      await magicClicker("Submit");
+    } catch (error) {
+      speakText("Error: " + error);
+    }
+    ```
+
+    3. **Test incrementally:**
+    - Start with single action
+    - Add actions one at a time
+    - Test after each addition
+
+    4. **Check variables:**
+    ```javascript
+    const result = await magicScraper("Code");
+    speakText("Result is: " + result);
+    ```
+
+    See full [Debugging Guide](/troubleshooting/debugging) for advanced techniques.
+  </Accordion>
+
+  <Accordion title="Why is PhoneClaw using so much battery?">
+    **Battery optimization:**
+
+    1. **Vision API calls**
+       - magicClicker/magicScraper use vision AI (network + processing)
+       - Minimize unnecessary calls
+
+    2. **Frequent scheduled tasks**
+       - Reduce frequency where possible
+       - Combine multiple actions into single scheduled task
+
+    3. **Accessibility service overhead**
+       - Normal for accessibility-based automation
+       - Disable when not actively using automations
+
+    4. **Long delays in loops**
+       - Use efficient timing
+       - Avoid busy-waiting loops
+
+    **Tips:**
+    - Use dedicated automation device if running 24/7
+    - Keep device plugged in for scheduled tasks
+    - Optimize scripts to reduce API calls
+  </Accordion>
+</AccordionGroup>
+
+## Advanced Usage
+
+<AccordionGroup>
+  <Accordion title="Can I chain automations across multiple apps?">
+    Yes! PhoneClaw excels at multi-app workflows:
+
+    ```javascript
+    // Check email for verification code
+    await magicClicker("Gmail app");
+    await delay(3000);
+    const code = await magicScraper("The verification code in the email");
+    speakText("Code found: " + code);
+
+    // Switch to browser
+    await magicClicker("Chrome app");
+    await delay(2000);
+
+    // Enter code
+    await magicClicker("Verification code field");
+    // ... enter code
+
+    speakText("Multi-app workflow complete");
+    ```
+
+    See [Multi-App Workflows Guide](/guides/multi-app-workflows) for examples.
+  </Accordion>
+
+  <Accordion title="Can I use PhoneClaw with other automation tools?">
+    PhoneClaw can complement other tools:
+
+    **Integration approaches:**
+    - Use `sendAgentEmail()` to notify external systems
+    - Trigger PhoneClaw from external tools via intents (advanced)
+    - Share data through files or network calls
+    - Use PhoneClaw for UI automation, other tools for API calls
+
+    **Compatible with:**
+    - Tasker (via intents)
+    - IFTTT (via webhooks/email)
+    - Home Assistant (via notifications)
+    - Custom Python/Node.js scripts
+  </Accordion>
+
+  <Accordion title="How do I handle CAPTCHAs?">
+    **CAPTCHA automation:**
+
+    1. **Vision-based solving:**
+       - Use magicScraper to read CAPTCHA challenges
+       - Process with vision AI
+       - Use magicClicker to select answers
+
+    2. **Image CAPTCHAs:**
+    ```javascript
+    const question = await magicScraper("What does the CAPTCHA ask to select?");
+    speakText("CAPTCHA asks: " + question);
+    // Use vision to identify matching images
+    await magicClicker("Correct image tile");
+    ```
+
+    3. **reCAPTCHA:**
+       - Harder to automate
+       - May require CAPTCHA solving services
+       - Consider accessibility alternatives
+
+    See [CAPTCHA Solving Example](/examples/captcha-solving) for detailed implementation.
+  </Accordion>
+
+  <Accordion title="Can I build a business using PhoneClaw?">
+    Yes, PhoneClaw is open source and can be used commercially:
+
+    **Potential use cases:**
+    - Social media management services
+    - Testing and QA automation
+    - Data collection and monitoring
+    - Personal productivity tools
+    - Accessibility solutions
+
+    **Important considerations:**
+    - Respect terms of service of automated apps
+    - Don't use for spam or malicious purposes
+    - Consider rate limits and API usage costs
+    - Ensure compliance with relevant laws and regulations
+
+    **Legal note:** You are responsible for ensuring your use case complies with applicable laws and service terms.
+  </Accordion>
+</AccordionGroup>
+
+## Community and Support
+
+<AccordionGroup>
+  <Accordion title="Where can I get help?">
+    **Support channels:**
+
+    <CardGroup cols={2}>
+      <Card title="Discord Community" icon="discord" href="https://discord.gg/n9nbZUrw">
+        Active community for quick help and discussions
+      </Card>
+      <Card title="GitHub Issues" icon="github" href="https://github.com/rohanarun/phoneclaw/issues">
+        Report bugs and request features
+      </Card>
+      <Card title="Documentation" icon="book" href="/">
+        Comprehensive guides and API reference
+      </Card>
+      <Card title="YouTube Channel" icon="youtube" href="https://www.youtube.com/@getsuperpowers">
+        Video tutorials and demos
+      </Card>
+    </CardGroup>
+  </Accordion>
+
+  <Accordion title="How can I contribute to PhoneClaw?">
+    Contributions are welcome!
+
+    **Ways to contribute:**
+    - Report bugs and issues
+    - Submit feature requests
+    - Fix bugs and add features
+    - Improve documentation
+    - Share automation examples
+    - Help other users in Discord
+
+    See the [Contributing Guide](/community/contributing) for detailed instructions.
+  </Accordion>
+
+  <Accordion title="Where can I find automation examples?">
+    **Resources:**
+
+    1. **Documentation Examples** - [Examples section](/examples/social-media)
+    2. **Demo Videos** - [YouTube channel](https://www.youtube.com/@getsuperpowers)
+    3. **Discord #showcase** - Community-shared automations
+    4. **GitHub repository** - Sample scripts in the repo
+
+    **Popular examples:**
+    - Social media posting
+    - Account creation with 2FA
+    - Email automation
+    - TikTok video uploads
+    - CAPTCHA solving
+  </Accordion>
+
+  <Accordion title="Is there a PhoneClaw community?">
+    Yes! Join our active community:
+
+    **Discord Server:** [discord.gg/n9nbZUrw](https://discord.gg/n9nbZUrw)
+    - Get support from experienced users
+    - Share your automations
+    - Request features
+    - Stay updated on new releases
+
+    **Twitter Community:** [Join on Twitter](https://x.com/i/communities/2026071470741635468)
+    - Discussions and updates
+
+    **YouTube:** [@getsuperpowers](https://www.youtube.com/@getsuperpowers)
+    - Tutorials and demos
+
+    See [Community page](/community/discord) for more information.
+  </Accordion>
+</AccordionGroup>
+
+## Still Have Questions?
+
+<CardGroup cols={2}>
+  <Card
+    title="Join Discord"
+    icon="discord"
+    href="https://discord.gg/n9nbZUrw"
+  >
+    Ask questions in real-time
+  </Card>
+  <Card
+    title="Browse Docs"
+    icon="book"
+    href="/"
+  >
+    Explore comprehensive documentation
+  </Card>
+  <Card
+    title="Common Issues"
+    icon="wrench"
+    href="/troubleshooting/common-issues"
+  >
+    Find solutions to common problems
+  </Card>
+  <Card
+    title="GitHub Discussions"
+    icon="github"
+    href="https://github.com/rohanarun/phoneclaw/discussions"
+  >
+    Join community discussions
+  </Card>
+</CardGroup>

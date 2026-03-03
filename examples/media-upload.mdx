@@ -1,0 +1,501 @@
+---
+title: 'Media Upload Automation'
+description: 'Automate video and image uploads to social media platforms'
+---
+
+## Overview
+
+PhoneClaw can automate media uploads to platforms like TikTok, Instagram, and YouTube. Watch the [TikTok video upload demo](https://www.youtube.com/watch?v=TRqPFSixaog) showing automated video uploads with songs.
+
+## Automating TikTok Video Uploads
+
+Complete workflow for uploading videos to TikTok with music and captions:
+
+<Steps>
+  <Step title="Open TikTok and Start Upload">
+    Navigate to TikTok and initiate the upload process.
+    
+    ```js
+    magicClicker("TikTok app")
+    delay(2000)
+    magicClicker("Create button")
+    delay(1500)
+    magicClicker("Upload video")
+    delay(2000)
+    ```
+  </Step>
+  
+  <Step title="Select Video File">
+    Choose the video from your device gallery.
+    
+    ```js
+    magicClicker("Gallery")
+    delay(1500)
+    magicClicker("Recent videos folder")
+    delay(1000)
+    magicClicker("First video in gallery")
+    delay(1000)
+    magicClicker("Next button")
+    delay(3000)
+    ```
+  </Step>
+  
+  <Step title="Add Music">
+    Select and add background music to the video.
+    
+    ```js
+    magicClicker("Add sound")
+    delay(2000)
+    magicClicker("Search for sounds")
+    delay(1000)
+    // Type song name
+    magicClicker("First search result")
+    delay(1500)
+    magicClicker("Use this sound")
+    delay(2000)
+    ```
+  </Step>
+  
+  <Step title="Add Caption and Details">
+    Write caption, add hashtags, and configure post settings.
+    
+    ```js
+    magicClicker("Describe your video field")
+    delay(1000)
+    // Type caption and hashtags
+    
+    magicClicker("Next button")
+    delay(2000)
+    ```
+  </Step>
+  
+  <Step title="Post Video">
+    Publish the video to TikTok.
+    
+    ```js
+    magicClicker("Post button")
+    delay(3000)
+    
+    const posted = magicScraper("Is the video successfully posted?")
+    
+    if (posted.includes("yes")) {
+      speakText("Video posted successfully to TikTok")
+    }
+    ```
+  </Step>
+</Steps>
+
+## Complete TikTok Upload Script
+
+```js
+// Automate TikTok video upload with music
+const uploadToTikTok = (videoName, caption, songName) => {
+  speakText("Starting TikTok upload")
+  
+  // Open TikTok
+  magicClicker("TikTok app")
+  delay(2000)
+  
+  // Start upload
+  magicClicker("Plus button" || "Create")
+  delay(1500)
+  
+  magicClicker("Upload")
+  delay(2000)
+  
+  // Select video
+  magicClicker("Gallery")
+  delay(1500)
+  
+  magicClicker(`Video named ${videoName}` || "Most recent video")
+  delay(1000)
+  
+  magicClicker("Next")
+  delay(3000)
+  
+  // Add music if specified
+  if (songName) {
+    speakText(`Adding song: ${songName}`)
+    
+    magicClicker("Add sound" || "Sounds")
+    delay(2000)
+    
+    magicClicker("Search")
+    delay(1000)
+    // typeText(songName)
+    delay(1500)
+    
+    magicClicker("First search result")
+    delay(1000)
+    
+    magicClicker("Use this sound")
+    delay(2000)
+  }
+  
+  // Add caption
+  magicClicker("Describe your video" || "Add description")
+  delay(1000)
+  // typeText(caption)
+  
+  // Navigate to post
+  magicClicker("Next")
+  delay(2000)
+  
+  // Set visibility (optional)
+  const setPublic = magicScraper("Is the post set to public?")
+  if (!setPublic.includes("yes")) {
+    magicClicker("Who can watch this video")
+    delay(1000)
+    magicClicker("Everyone")
+    delay(1000)
+  }
+  
+  // Post
+  magicClicker("Post")
+  delay(4000)
+  
+  // Verify
+  const success = magicScraper("Is your video posted?")
+  
+  if (success.includes("yes")) {
+    speakText("TikTok video posted successfully")
+    
+    sendAgentEmail(
+      "creator@example.com",
+      "TikTok Upload Complete",
+      `Your video has been posted to TikTok with caption: ${caption}`
+    )
+  }
+}
+
+// Execute upload
+uploadToTikTok(
+  "my-video.mp4",
+  "Check out this amazing content! #fyp #trending #viral",
+  "popular song name"
+)
+```
+
+## Instagram Reels Upload
+
+Automate uploading Reels to Instagram:
+
+```js
+// Upload Reel to Instagram
+const uploadInstagramReel = (caption) => {
+  speakText("Uploading to Instagram Reels")
+  
+  magicClicker("Instagram app")
+  delay(2000)
+  
+  magicClicker("Plus button")
+  delay(1500)
+  
+  magicClicker("Reel")
+  delay(2000)
+  
+  magicClicker("Gallery icon")
+  delay(1000)
+  
+  magicClicker("Recent video")
+  delay(1000)
+  
+  magicClicker("Next")
+  delay(3000)
+  
+  // Add music
+  magicClicker("Add music")
+  delay(2000)
+  magicClicker("Trending song")
+  delay(1500)
+  magicClicker("Done")
+  delay(2000)
+  
+  // Next to caption
+  magicClicker("Next")
+  delay(2000)
+  
+  // Write caption
+  magicClicker("Write a caption")
+  delay(1000)
+  // typeText(caption)
+  
+  // Share
+  magicClicker("Share")
+  delay(4000)
+  
+  speakText("Instagram Reel posted")
+}
+
+uploadInstagramReel("Amazing reel! #reels #instagram #trending")
+```
+
+## YouTube Shorts Upload
+
+Automate YouTube Shorts uploads:
+
+```js
+// Upload to YouTube Shorts
+const uploadYouTubeShort = (title, description) => {
+  speakText("Uploading YouTube Short")
+  
+  magicClicker("YouTube app")
+  delay(2000)
+  
+  magicClicker("Create button")
+  delay(1500)
+  
+  magicClicker("Create a Short")
+  delay(2000)
+  
+  magicClicker("Upload video")
+  delay(1500)
+  
+  magicClicker("Recent video")
+  delay(2000)
+  
+  magicClicker("Next")
+  delay(3000)
+  
+  // Add title
+  magicClicker("Add title")
+  delay(1000)
+  // typeText(title)
+  
+  // Add description
+  magicClicker("Add description")
+  delay(1000)
+  // typeText(description)
+  
+  // Set visibility
+  magicClicker("Select visibility")
+  delay(1000)
+  magicClicker("Public")
+  delay(1000)
+  
+  // Upload
+  magicClicker("Upload Short")
+  delay(5000)
+  
+  speakText("YouTube Short uploaded")
+}
+
+uploadYouTubeShort(
+  "Amazing Short Video",
+  "Check out this content! #shorts #trending"
+)
+```
+
+## Batch Upload Multiple Videos
+
+Upload multiple videos in sequence:
+
+```js
+// Batch upload videos to TikTok
+const videos = [
+  {
+    name: "video1.mp4",
+    caption: "First video #fyp #trending",
+    song: "Popular Song 1"
+  },
+  {
+    name: "video2.mp4",
+    caption: "Second video #viral #fun",
+    song: "Popular Song 2"
+  },
+  {
+    name: "video3.mp4",
+    caption: "Third video #amazing #content",
+    song: "Popular Song 3"
+  }
+]
+
+const batchUpload = () => {
+  videos.forEach((video, index) => {
+    speakText(`Uploading video ${index + 1} of ${videos.length}`)
+    
+    uploadToTikTok(video.name, video.caption, video.song)
+    
+    // Wait between uploads
+    delay(10000)
+    
+    // Return to home for next upload
+    magicClicker("Home button")
+    delay(2000)
+  })
+  
+  speakText(`Successfully uploaded ${videos.length} videos`)
+  
+  // Send completion notification
+  sendAgentEmail(
+    "creator@example.com",
+    "Batch Upload Complete",
+    `All ${videos.length} videos have been uploaded to TikTok`
+  )
+}
+
+batchUpload()
+```
+
+## Cross-Platform Upload
+
+Upload the same video to multiple platforms:
+
+```js
+// Upload to multiple platforms
+const crossPlatformUpload = (caption) => {
+  speakText("Starting cross-platform upload")
+  
+  // Upload to TikTok
+  speakText("Uploading to TikTok")
+  uploadToTikTok("video.mp4", caption + " #tiktok", "trending song")
+  delay(5000)
+  
+  // Return home
+  magicClicker("Home button")
+  delay(2000)
+  
+  // Upload to Instagram
+  speakText("Uploading to Instagram")
+  uploadInstagramReel(caption + " #instagram")
+  delay(5000)
+  
+  // Return home
+  magicClicker("Home button")
+  delay(2000)
+  
+  // Upload to YouTube
+  speakText("Uploading to YouTube")
+  uploadYouTubeShort(
+    "My Video",
+    caption + " #shorts #youtube"
+  )
+  delay(5000)
+  
+  speakText("Cross-platform upload complete")
+  
+  sendAgentEmail(
+    "creator@example.com",
+    "Video Posted Everywhere",
+    "Your video has been posted to TikTok, Instagram, and YouTube"
+  )
+}
+
+crossPlatformUpload("Check out my amazing content!")
+```
+
+## Scheduled Video Posting
+
+Schedule videos to post at specific times:
+
+```js
+// Schedule video posts
+const scheduleVideoPost = () => {
+  const videoQueue = [
+    { time: "0 9 * * *", video: "morning-video.mp4", caption: "Good morning!" },
+    { time: "0 12 * * *", video: "noon-video.mp4", caption: "Lunch time!" },
+    { time: "0 18 * * *", video: "evening-video.mp4", caption: "Good evening!" }
+  ]
+  
+  videoQueue.forEach(item => {
+    const task = `
+      uploadToTikTok(
+        "${item.video}",
+        "${item.caption}",
+        "trending song"
+      )
+    `
+    
+    schedule(task, item.time)
+    speakText(`Scheduled ${item.video} for posting`)
+  })
+  
+  speakText("All videos scheduled successfully")
+}
+
+scheduleVideoPost()
+```
+
+## Image Upload Automation
+
+Automate image posts to Instagram:
+
+```js
+// Upload image to Instagram
+const uploadInstagramImage = (imageName, caption) => {
+  speakText("Uploading image to Instagram")
+  
+  magicClicker("Instagram app")
+  delay(2000)
+  
+  magicClicker("Plus button")
+  delay(1500)
+  
+  magicClicker("Post")
+  delay(2000)
+  
+  magicClicker("Gallery")
+  delay(1000)
+  
+  magicClicker(`Image named ${imageName}` || "Recent photo")
+  delay(1000)
+  
+  magicClicker("Next")
+  delay(2000)
+  
+  // Apply filters (optional)
+  magicClicker("Filter")
+  delay(1000)
+  magicClicker("Valencia filter")
+  delay(1000)
+  
+  magicClicker("Next")
+  delay(2000)
+  
+  // Write caption
+  magicClicker("Write a caption")
+  delay(1000)
+  // typeText(caption)
+  
+  // Add location (optional)
+  magicClicker("Add location")
+  delay(1500)
+  magicClicker("First location suggestion")
+  delay(1000)
+  
+  // Share
+  magicClicker("Share")
+  delay(4000)
+  
+  speakText("Image posted to Instagram")
+}
+
+uploadInstagramImage(
+  "photo.jpg",
+  "Beautiful moment captured! #photography #instagram"
+)
+```
+
+## Best Practices
+
+- Always verify video selection before uploading
+- Use appropriate delays for video processing
+- Test captions for proper formatting and hashtags
+- Implement error handling for failed uploads
+- Monitor upload progress with `magicScraper`
+- Respect platform rate limits when batch uploading
+- Verify successful posting before moving to next upload
+- Keep track of posted content for analytics
+
+## Common Issues
+
+- Video processing times vary by file size
+- Some platforms require specific video formats
+- Music libraries may differ by region
+- Hashtag limits vary by platform
+- Upload failures may require retry logic
+
+## See Also
+
+- [Social Media Automation](/examples/social-media)
+- [ClawScript API Reference](/api-reference/clawscript-api)

@@ -1,0 +1,191 @@
+---
+title: 'Accessibility Service Overview'
+description: 'Learn how PhoneClaw uses Android Accessibility Service for UI automation'
+---
+
+## Introduction
+
+The `MyAccessibilityService` class provides low-level Android automation capabilities through the Android Accessibility Service API. This service allows PhoneClaw to interact with UI elements, simulate gestures, and extract screen content without requiring root access.
+
+## Service Lifecycle
+
+The Accessibility Service maintains a singleton instance that is automatically managed by the Android system.
+
+### Service Connection
+
+```kotlin
+val service = MyAccessibilityService.instance
+if (service != null) {
+    // Service is connected and ready
+    service.clickByDesc("Submit")
+} else {
+    // Service not available - user needs to enable it in settings
+}
+```
+
+### Lifecycle Methods
+
+<ResponseField name="onServiceConnected" type="void">
+  Called when the accessibility service is successfully connected. Sets the singleton instance.
+</ResponseField>
+
+<ResponseField name="onDestroy" type="void">
+  Called when the service is destroyed. Clears the singleton instance.
+</ResponseField>
+
+<ResponseField name="onInterrupt" type="void">
+  Called when the accessibility service is interrupted.
+</ResponseField>
+
+<ResponseField name="onAccessibilityEvent" type="void">
+  Handles accessibility events from the system. Currently unused but available for event monitoring.
+  
+  <Expandable title="parameters">
+    <ResponseField name="event" type="AccessibilityEvent?">
+      The accessibility event received from the system
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Core Capabilities
+
+The Accessibility Service provides three main categories of functionality:
+
+### 1. Node Operations
+
+Find and interact with UI elements using various search strategies:
+
+- **By Content Description**: `clickByDesc(description)`
+- **By View ID**: `clickElementByViewId(viewId)`
+- **By Text Label**: `clickButtonWithLabel(label)`
+- **By Class and Index**: `findNodeByClassNameAndIndexAndString()`
+
+See [Node Operations](/api/accessibility/node-operations) for detailed documentation.
+
+### 2. Gestures
+
+Simulate touch gestures and user interactions:
+
+- **Tap**: `simulateClick(x, y)`
+- **Swipe**: `simulateSwipe(startX, startY, endX, endY)`
+- **Scroll**: `simulateScrollToBottom()`, `simulateScrollToTop()`
+
+See [Gestures](/api/accessibility/gestures) for detailed documentation.
+
+### 3. Text Operations
+
+Type text into input fields and extract screen content:
+
+- **Type Text**: `simulateTypeInFirstEditableField(text)`
+- **Extract Content**: `getAllTextFromScreen()`
+- **Press Enter**: `pressEnterKey()`
+
+See [Node Operations](/api/accessibility/node-operations) for text operation details.
+
+## Requirements
+
+<Warning>
+  The Accessibility Service must be enabled by the user in Android Settings → Accessibility before it can be used.
+</Warning>
+
+### API Level Requirements
+
+Some methods require specific Android API levels:
+
+- **Gesture simulation** (tap, swipe): API 24 (Android 7.0) or higher
+- **View ID lookup**: API 18 (Android 4.3) or higher
+- **IME Enter action**: API 33 (Android 13) or higher (with fallback for older versions)
+
+## Usage Example
+
+```kotlin
+val service = MyAccessibilityService.instance ?: return
+
+// Search for text on screen
+if (service.isTextPresentOnScreen("Welcome")) {
+    println("Welcome message found")
+}
+
+// Type into the first input field
+service.simulateTypeInFirstEditableField("username@example.com")
+
+// Type into the second input field
+service.simulateTypeInSecondEditableField("password123")
+
+// Click a button by its label
+service.clickButtonWithLabel("Sign In")
+
+// Wait for navigation
+Thread.sleep(1000)
+
+// Extract all screen text
+val screenContent = service.getAllTextFromScreen()
+println("Screen content: $screenContent")
+```
+
+## Error Handling
+
+All methods handle errors gracefully and log detailed information:
+
+```kotlin
+val service = MyAccessibilityService.instance
+if (service == null) {
+    Log.e("MyApp", "Accessibility service not available")
+    // Prompt user to enable the service
+    return
+}
+
+// Check if root window is available
+if (!service.isTextPresentOnScreen("expected text")) {
+    Log.w("MyApp", "Expected text not found - might be wrong screen")
+}
+```
+
+## Best Practices
+
+<Check>
+  Always check if the service instance is available before calling methods
+</Check>
+
+<Check>
+  Use descriptive search terms that are unlikely to change between app versions
+</Check>
+
+<Check>
+  Add delays between actions to allow the UI to update
+</Check>
+
+<Check>
+  Verify actions succeeded by checking for expected UI changes
+</Check>
+
+<Warning>
+  Avoid hardcoding pixel coordinates - prefer element-based interactions when possible
+</Warning>
+
+## Debugging
+
+The service logs detailed information to help debug automation issues:
+
+```bash
+# View accessibility service logs
+adb logcat | grep MyAccessibilityService
+```
+
+Common log messages:
+
+- `"Accessibility Service Connected"` - Service started successfully
+- `"rootInActiveWindow is null"` - No active window (app may be in background)
+- `"No node with text found"` - Element search failed
+- `"Clicked center of bounds"` - Gesture fallback was used
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Node Operations" icon="mouse-pointer" href="/api/accessibility/node-operations">
+    Learn how to find and click UI elements
+  </Card>
+  <Card title="Gestures" icon="hand-pointer" href="/api/accessibility/gestures">
+    Simulate taps, swipes, and scrolls
+  </Card>
+</CardGroup>

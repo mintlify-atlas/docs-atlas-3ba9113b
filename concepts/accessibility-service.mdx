@@ -1,0 +1,518 @@
+---
+title: 'Android Accessibility Service'
+description: 'How PhoneClaw uses Android Accessibility APIs to automate UI interactions'
+---
+
+## Overview
+
+PhoneClaw's automation capabilities are powered by Android's **Accessibility Service**, which provides programmatic access to UI elements across all apps on the device. This enables PhoneClaw to read screen content, find elements, and simulate user interactions.
+
+## What is an Accessibility Service?
+
+Android Accessibility Services were designed to help users with disabilities interact with their devices. PhoneClaw leverages these same APIs for automation:
+
+- **Screen Reading**: Access all text and UI elements currently visible
+- **UI Interaction**: Click, type, scroll, and navigate programmatically
+- **Global Access**: Works across all apps (with permission)
+- **Event Monitoring**: Receive notifications when UI changes occur
+
+<Warning>
+  **User Permission Required**: Accessibility Services require explicit user authorization in Android Settings → Accessibility. PhoneClaw cannot function without this permission.
+</Warning>
+
+## Service Architecture
+
+### Service Lifecycle
+
+From `MyAccessibilityService.kt:45-63`:
+
+```kotlin
+class MyAccessibilityService : AccessibilityService() {
+    
+    companion object {
+        var instance: MyAccessibilityService? = null
+            private set
+    }
+    
+    override fun onServiceConnected() {
+        super.onServiceConnected()
+        instance = this
+        Log.w("MyAccessibilityService", "Accessibility Service Connected")
+    }
+    
+    override fun onAccessibilityEvent(event: AccessibilityEvent?) {
+        // Handle accessibility events if needed
+    }
+    
+    override fun onInterrupt() {
+        // Called when the accessibility service is interrupted
+    }
+    
+    override fun onDestroy() {
+        super.onDestroy()
+        instance = null
+        Log.w("MyAccessibilityService", "Accessibility Service Destroyed")
+    }
+}
+```
+
+<Info>
+  The service maintains a singleton `instance` that can be accessed from anywhere in the app. This allows ClawScript to trigger accessibility actions from JavaScript.
+</Info>
+
+## Core Capabilities
+
+### 1. Simulating Clicks
+
+PhoneClaw can click at specific screen coordinates using gestures:
+
+```kotlin
+fun simulateClick(x: Float, y: Float) {
+    try {
+        val path = Path()
+        path.moveTo(x, y)
+        
+        val gestureBuilder = GestureDescription.Builder()
+        val strokeDescription = GestureDescription.StrokeDescription(path, 0, 100)
+        gestureBuilder.addStroke(strokeDescription)
+        
+        val gesture = gestureBuilder.build()
+        dispatchGesture(gesture, null, null)
+        
+        Log.d("MyAccessibilityService", "Simulated click at ($x, $y)")
+    } catch (e: Exception) {
+        Log.e("MyAccessibilityService", "Error simulating click: ${e.message}")
+    }
+}
+```
+
+**JavaScript Usage:**
+```javascript
+simulateClick(360, 800);  // Click center of screen
+```
+
+### 2. Finding UI Elements
+
+Accessibility Services can traverse the entire UI hierarchy:
+
+```kotlin
+fun clickNodesByContentDescription(desc: String) {
+    val root = rootInActiveWindow ?: return
+    findAndClick(root, desc)
+}
+
+private fun findAndClick(node: AccessibilityNodeInfo, desc: String): Boolean {
+    // Match on contentDescription
+    if (node.contentDescription?.toString()?.contains(desc, ignoreCase = true) == true
+        && node.isClickable
+    ) {
+        node.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+        return true
+    }
+    
+    // Recursively search children
+    for (i in 0 until node.childCount) {
+        node.getChild(i)?.let { child ->
+            if (findAndClick(child, desc)) return true
+        }
+    }
+    return false
+}
+```
+
+**JavaScript Usage:**
+```javascript
+clickNodesByContentDescription("Home");
+clickNodesByContentDescription("Search");
+```
+
+### 3. Text Detection
+
+Check if specific text appears on screen:
+
+```kotlin
+fun isTextPresentOnScreen(searchText: String): Boolean {
+    val root = rootInActiveWindow ?: return false
+    val lowerSearchText = searchText.lowercase(Locale.getDefault())
+    return checkNodeForText(root, lowerSearchText)
+}
+
+private fun checkNodeForText(node: AccessibilityNodeInfo?, lowerSearchText: String): Boolean {
+    if (node == null) return false
+    
+    // Check node's text
+    val text = node.text?.toString()?.lowercase(Locale.getDefault()) ?: ""
+    if (text.contains(lowerSearchText)) {
+        return true
+    }
+    
+    // Check content description
+    val contentDesc = node.contentDescription?.toString()?.lowercase(Locale.getDefault()) ?: ""
+    if (contentDesc.contains(lowerSearchText)) {
+        return true
+    }
+    
+    // Recursively check children
+    for (i in 0 until node.childCount) {
+        val child = node.getChild(i)
+        if (checkNodeForText(child, lowerSearchText)) {
+            return true
+        }
+    }
+    
+    return false
+}
+```
+
+**JavaScript Usage:**
+```javascript
+if (isTextPresentOnScreen("Login")) {
+    speakText("Found login screen");
+}
+```
+
+### 4. Text Input
+
+Type into editable fields:
+
+```kotlin
+fun simulateTypeInFirstEditableField(inputText: String) {
+    val root = rootInActiveWindow ?: return
+    
+    val queue = ArrayDeque<AccessibilityNodeInfo>()
+    queue.add(root)
+    
+    while (queue.isNotEmpty()) {
+        val node = queue.removeFirst()
+        
+        if (node.className == "android.widget.EditText"
+            && node.isEnabled
+            && (node.actions and AccessibilityNodeInfo.ACTION_SET_TEXT) != 0
+        ) {
+            // Focus the field
+            node.performAction(AccessibilityNodeInfo.ACTION_FOCUS)
+            
+            // Set text
+            val args = Bundle().apply {
+                putCharSequence(
+                    AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE,
+                    inputText
+                )
+            }
+            node.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args)
+            return
+        }
+        
+        // Enqueue children
+        for (i in 0 until node.childCount) {
+            node.getChild(i)?.let { queue.add(it) }
+        }
+    }
+}
+```
+
+**JavaScript Usage:**
+```javascript
+simulateTypeInFirstEditableField("username@email.com");
+simulateTypeInSecondEditableField("password123");
+pressEnterKey();
+```
+
+### 5. Scrolling & Swiping
+
+```kotlin
+fun simulateSwipe(startX: Float, startY: Float, endX: Float, endY: Float) {
+    try {
+        val path = Path()
+        path.moveTo(startX, startY)
+        path.lineTo(endX, endY)
+        
+        val gestureBuilder = GestureDescription.Builder()
+        val strokeDescription = GestureDescription.StrokeDescription(path, 0, 500) // 500ms duration
+        gestureBuilder.addStroke(strokeDescription)
+        
+        val gesture = gestureBuilder.build()
+        dispatchGesture(gesture, null, null)
+        
+        Log.d("MyAccessibilityService", "Simulated swipe from ($startX, $startY) to ($endX, $endY)")
+    } catch (e: Exception) {
+        Log.e("MyAccessibilityService", "Error simulating swipe: ${e.message}")
+    }
+}
+```
+
+**JavaScript Usage:**
+```javascript
+// Swipe up to scroll
+swipeUp();
+
+// Custom swipe
+Android.simulateSwipe(360, 1200, 360, 400);
+```
+
+## Advanced Features
+
+### Element Finding by View ID
+
+Target specific UI elements using Android resource IDs:
+
+```kotlin
+fun clickElementByViewId(viewId: String): Boolean {
+    val root = rootInActiveWindow ?: return false
+    
+    try {
+        val node = root.findAccessibilityNodeInfosByViewId(viewId).firstOrNull()
+        
+        if (node != null) {
+            val bounds = android.graphics.Rect()
+            node.getBoundsInScreen(bounds)
+            
+            val centerX = bounds.centerX()
+            val centerY = bounds.centerY()
+            
+            simulateClick(centerX.toFloat(), centerY.toFloat())
+            return true
+        }
+    } catch (e: Exception) {
+        Log.e("clickElementByViewId", "Error: ${e.message}")
+    }
+    return false
+}
+```
+
+**JavaScript Usage:**
+```javascript
+clickElementByViewId("com.instagram.android:id/action_bar_button_action");
+```
+
+### Extracting All Screen Text
+
+```kotlin
+fun getAllTextFromScreen(): String {
+    val rootNode = rootInActiveWindow ?: return "No screen content available"
+    val textBuilder = StringBuilder()
+    extractTextFromNode(rootNode, textBuilder)
+    return textBuilder.toString().trim()
+}
+
+private fun extractTextFromNode(node: AccessibilityNodeInfo, textBuilder: StringBuilder) {
+    try {
+        val nodeText = node.text?.toString()
+        val contentDesc = node.contentDescription?.toString()
+        
+        if (!nodeText.isNullOrEmpty()) {
+            textBuilder.append(nodeText).append(" ")
+        }
+        
+        if (!contentDesc.isNullOrEmpty() && contentDesc != nodeText) {
+            textBuilder.append(contentDesc).append(" ")
+        }
+        
+        // Recursively extract from children
+        for (i in 0 until node.childCount) {
+            val child = node.getChild(i)
+            if (child != null) {
+                extractTextFromNode(child, textBuilder)
+                child.recycle()
+            }
+        }
+    } catch (e: Exception) {
+        Log.e("MyAccessibilityService", "Error extracting text: ${e.message}")
+    }
+}
+```
+
+**JavaScript Usage:**
+```javascript
+const screenContent = Android.getAllTextFromScreen();
+speakText("Screen contains: " + screenContent);
+```
+
+## App-Specific Automation
+
+PhoneClaw includes specialized functions for popular apps:
+
+<Accordion title="TikTok Automation">
+```kotlin
+fun clickVideoUploadButton() {
+    val root = rootInActiveWindow ?: return
+    
+    // Try multiple known view IDs
+    if (tryClick(root.findAccessibilityNodeInfosByViewId(
+            "com.zhiliaoapp.musically:id/i98").firstOrNull())) return
+    if (tryClick(root.findAccessibilityNodeInfosByViewId(
+            "com.zhiliaoapp.musically:id/c0t").firstOrNull())) return
+    
+    // Fallback: look for 98x98px ImageView
+    val uploadIcon = findSquareImage(root, 98)
+    uploadIcon?.let { simulateNodeCenterTap(it) }
+}
+
+fun clickFirstGalleryItem() {
+    val root = rootInActiveWindow ?: return
+    val gridIds = arrayOf(
+        "com.zhiliaoapp.musically:id/h4i",
+        "com.zhiliaoapp.musically:id/h3g",
+        "com.zhiliaoapp.musically:id/h0f"
+    )
+    
+    var grid: AccessibilityNodeInfo? = null
+    for (id in gridIds) {
+        grid = root.findAccessibilityNodeInfosByViewId(id).firstOrNull()
+        if (grid != null) break
+    }
+    
+    grid?.getChild(0)?.let { firstCell ->
+        performNodeClick(firstCell)
+    }
+}
+```
+
+**JavaScript:**
+```javascript
+launchTikTok();
+delay(3000);
+clickVideoUploadButton();
+delay(2000);
+clickFirstGalleryItem();
+```
+</Accordion>
+
+<Accordion title="Instagram Automation">
+```javascript
+launchInstagram();
+delay(3000);
+
+clickNodesByContentDescription("Create");
+delay(2000);
+
+clickNodesByContentDescription("Post");
+delay(2000);
+
+simulateClick(150, 400);  // Select first photo
+delay(2000);
+
+clickNodesByContentDescription("Next");
+delay(3000);
+
+simulateTypeInFirstEditableField("My awesome post! #automation");
+delay(2000);
+
+clickNodesByContentDescription("Share");
+```
+</Accordion>
+
+## Permissions & Setup
+
+### 1. Declare Service in AndroidManifest.xml
+
+```xml
+<service
+    android:name=".MyAccessibilityService"
+    android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
+    android:exported="true">
+    <intent-filter>
+        <action android:name="android.accessibilityservice.AccessibilityService" />
+    </intent-filter>
+    <meta-data
+        android:name="android.accessibilityservice"
+        android:resource="@xml/accessibility_service_config" />
+</service>
+```
+
+### 2. Configure Service Capabilities
+
+```xml res/xml/accessibility_service_config.xml
+<?xml version="1.0" encoding="utf-8"?>
+<accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:accessibilityEventTypes="typeAllMask"
+    android:accessibilityFeedbackType="feedbackGeneric"
+    android:accessibilityFlags="flagDefault|flagRetrieveInteractiveWindows"
+    android:canRetrieveWindowContent="true"
+    android:description="@string/accessibility_service_description"
+    android:notificationTimeout="100" />
+```
+
+### 3. Check Permission Status
+
+```kotlin
+private fun checkAccessibilityPermission() {
+    val accessibilityManager = getSystemService(Context.ACCESSIBILITY_SERVICE) as AccessibilityManager
+    val enabledServices = Settings.Secure.getString(
+        contentResolver,
+        Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
+    )
+    
+    val isEnabled = enabledServices?.contains(packageName) == true
+    
+    if (!isEnabled) {
+        // Prompt user to enable
+        val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+        startActivity(intent)
+    }
+}
+```
+
+## Best Practices
+
+<Note>
+  **Performance Tips:**
+  - Always check if `rootInActiveWindow` is null before traversing
+  - Recycle AccessibilityNodeInfo objects after use to prevent memory leaks
+  - Use specific targeting (View IDs, content descriptions) instead of full tree traversal
+  - Add delays between rapid UI interactions
+</Note>
+
+<Warning>
+  **Security Considerations:**
+  - Accessibility Services can access sensitive information (passwords, personal data)
+  - Never log or transmit sensitive screen content
+  - Respect user privacy and only automate with explicit consent
+  - Be transparent about what data your automation accesses
+</Warning>
+
+## Troubleshooting
+
+### Service Not Connected
+
+```kotlin
+if (MyAccessibilityService.instance == null) {
+    speakText("Please enable PhoneClaw Accessibility Service in Settings");
+    val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+    startActivity(intent)
+}
+```
+
+### Element Not Found
+
+```javascript
+if (!isTextPresentOnScreen("Login")) {
+    speakText("Login screen not found. Please navigate manually.");
+    delay(5000);  // Give user time to navigate
+}
+```
+
+### Click Not Working
+
+If semantic clicks fail, fall back to coordinate-based clicks:
+
+```kotlin
+private fun clickNodeOrParent(node: AccessibilityNodeInfo): Boolean {
+    if (node.isClickable) return node.performAction(ACTION_CLICK)
+    
+    var p = node.parent
+    while (p != null && !p.isClickable) p = p.parent
+    return p?.performAction(ACTION_CLICK) ?: false
+}
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Vision Targeting" icon="eye" href="/concepts/vision-targeting">
+    Combine accessibility with vision AI
+  </Card>
+  <Card title="ClawScript" icon="code" href="/concepts/clawscript">
+    JavaScript automation API reference
+  </Card>
+</CardGroup>

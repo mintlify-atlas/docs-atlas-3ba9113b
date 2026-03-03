@@ -1,0 +1,217 @@
+---
+title: 'Email Automation'
+description: 'Automate email workflows and notifications with PhoneClaw'
+---
+
+## Overview
+
+PhoneClaw provides powerful email automation capabilities through the `sendAgentEmail` function and can read emails for extracting verification codes, processing notifications, and more.
+
+## Sending Automated Emails
+
+Use the `sendAgentEmail` function to send notifications or reports:
+
+<Steps>
+  <Step title="Compose Email Content">
+    Define your email recipient, subject, and message.
+    
+    ```js
+    const recipient = "user@example.com"
+    const subject = "Daily Automation Report"
+    const message = "Your automation completed successfully."
+    ```
+  </Step>
+  
+  <Step title="Send Email">
+    Use `sendAgentEmail` to send the email.
+    
+    ```js
+    sendAgentEmail(recipient, subject, message)
+    speakText("Email sent successfully")
+    ```
+  </Step>
+</Steps>
+
+### Complete Email Notification Script
+
+```js
+// Send automation completion notification
+const sendCompletionEmail = () => {
+  const to = "admin@example.com"
+  const subject = "PhoneClaw Automation Complete"
+  const message = `
+    Your scheduled automation has completed successfully.
+    
+    Timestamp: ${new Date().toISOString()}
+    Status: Success
+  `
+  
+  sendAgentEmail(to, subject, message)
+  speakText("Notification email sent")
+}
+
+sendCompletionEmail()
+```
+
+## Reading Emails for 2FA Codes
+
+Extract verification codes from emails using `magicScraper`:
+
+<Steps>
+  <Step title="Open Email App">
+    Navigate to your email application.
+    
+    ```js
+    magicClicker("Email app")
+    delay(2000)
+    magicClicker("Inbox")
+    delay(1500)
+    ```
+  </Step>
+  
+  <Step title="Find Verification Email">
+    Open the most recent verification email.
+    
+    ```js
+    magicClicker("Most recent email from verification")
+    delay(2000)
+    ```
+  </Step>
+  
+  <Step title="Extract Code">
+    Use `magicScraper` to read the verification code.
+    
+    ```js
+    const code = magicScraper("The 6-digit verification code in the email")
+    speakText(`Code extracted: ${code}`)
+    ```
+  </Step>
+</Steps>
+
+### Complete Email Code Extraction Script
+
+```js
+// Extract 2FA code from email
+const get2FACode = () => {
+  magicClicker("Email app")
+  delay(2000)
+  
+  magicClicker("Inbox")
+  delay(1500)
+  
+  magicClicker("Most recent email")
+  delay(2000)
+  
+  const code = magicScraper("The verification code shown in the email body")
+  
+  speakText(`Retrieved code: ${code}`)
+  return code
+}
+
+const verificationCode = get2FACode()
+```
+
+## Scheduled Email Reports
+
+Automate daily or weekly email reports:
+
+```js
+// Daily automation report
+const dailyReport = `
+  const stats = magicScraper("Current app statistics on screen")
+  
+  const reportMessage = \`
+    Daily PhoneClaw Report
+    =====================
+    
+    Date: \${new Date().toLocaleDateString()}
+    Status: \${stats}
+  \`
+  
+  sendAgentEmail(
+    "reports@example.com",
+    "Daily PhoneClaw Report",
+    reportMessage
+  )
+  
+  speakText("Daily report sent")
+`
+
+// Schedule for 9 AM every day
+schedule(dailyReport, "0 9 * * *")
+speakText("Scheduled daily email reports")
+```
+
+## Email-Based Workflow Triggers
+
+Monitor emails to trigger automated actions:
+
+```js
+// Check for specific emails and trigger actions
+const checkEmailTriggers = () => {
+  magicClicker("Email app")
+  delay(2000)
+  
+  const subject = magicScraper("Subject of the most recent email")
+  
+  if (subject.includes("URGENT")) {
+    // Trigger urgent workflow
+    sendAgentEmail(
+      "admin@example.com",
+      "Alert: Urgent Email Detected",
+      `An urgent email was detected: ${subject}`
+    )
+    speakText("Urgent email detected, notification sent")
+  }
+}
+
+// Run every 15 minutes
+schedule(checkEmailTriggers, "*/15 * * * *")
+```
+
+## Error Notification System
+
+Send email alerts when automations encounter errors:
+
+```js
+const runWithErrorHandling = (taskName, taskFunction) => {
+  try {
+    taskFunction()
+    speakText(`${taskName} completed successfully`)
+  } catch (error) {
+    sendAgentEmail(
+      "admin@example.com",
+      `PhoneClaw Error: ${taskName}`,
+      `
+        An error occurred during automation:
+        
+        Task: ${taskName}
+        Error: ${error.message}
+        Time: ${new Date().toISOString()}
+      `
+    )
+    speakText(`Error in ${taskName}, notification sent`)
+  }
+}
+
+// Example usage
+runWithErrorHandling("Social Media Post", () => {
+  magicClicker("Twitter app")
+  delay(2000)
+  magicClicker("Compose button")
+  // ... rest of workflow
+})
+```
+
+## Best Practices
+
+- Test email extraction with your specific email app layout
+- Use clear, descriptive subjects for automated emails
+- Implement error handling to catch failed email operations
+- Respect email provider rate limits when sending automated emails
+- Use appropriate delays when navigating email interfaces
+
+## See Also
+
+- [Account Creation with 2FA](/examples/account-creation)
+- [ClawScript API Reference](/api-reference/clawscript-api)

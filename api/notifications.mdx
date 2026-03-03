@@ -1,0 +1,494 @@
+---
+title: 'Notifications'
+description: 'Send emails and notifications from automations'
+icon: 'envelope'
+---
+
+## sendAgentEmail()
+
+Sends an email via the PhoneClaw agent email service. Useful for notifications, alerts, and automation reports.
+
+<ParamField path="to" type="string" required>
+  Recipient email address.
+</ParamField>
+
+<ParamField path="subject" type="string" required>
+  Email subject line.
+</ParamField>
+
+<ParamField path="message" type="string" required>
+  Email body content. Supports plain text only.
+</ParamField>
+
+<ResponseField name="return" type="void">
+  Sends email asynchronously. Success/failure is spoken via TTS.
+</ResponseField>
+
+### Basic Usage
+
+```javascript
+// Simple notification
+Android.sendAgentEmail(
+  "user@example.com",
+  "Automation Complete",
+  "Your scheduled task has finished successfully."
+);
+
+// Alert email
+Android.sendAgentEmail(
+  "admin@example.com",
+  "Error Alert",
+  "An error occurred during automation execution."
+);
+```
+
+### Practical Examples
+
+<CodeGroup>
+
+```javascript Daily Report
+// Send daily automation summary
+function sendDailyReport() {
+  const stats = {
+    tasksCompleted: 15,
+    errors: 2,
+    postsCreated: 5,
+    messagesChecked: 23
+  };
+  
+  const report = `Daily Automation Report
+  
+Tasks Completed: ${stats.tasksCompleted}
+Errors Encountered: ${stats.errors}
+Posts Created: ${stats.postsCreated}
+Messages Checked: ${stats.messagesChecked}
+
+Report generated at: ${new Date().toLocaleString()}`;
+  
+  Android.sendAgentEmail(
+    "admin@example.com",
+    "PhoneClaw Daily Report - " + new Date().toLocaleDateString(),
+    report
+  );
+  
+  Android.speakText("Daily report sent");
+}
+
+// Schedule daily at 6 PM
+Android.schedule("sendDailyReport()", "0 0 18 * * *");
+```
+
+```javascript Error Notifications
+// Send immediate error alerts
+function handleError(errorType, errorMessage) {
+  const email = `Error Alert
+  
+Type: ${errorType}
+Message: ${errorMessage}
+Timestamp: ${new Date().toISOString()}
+Device: Android Phone
+
+Please investigate this issue.`;
+  
+  Android.sendAgentEmail(
+    "alerts@example.com",
+    "🚨 PhoneClaw Error: " + errorType,
+    email
+  );
+  
+  Android.speakText("Error notification sent");
+}
+
+try {
+  // Automation code
+  performTask();
+} catch (e) {
+  handleError("Task Failure", e.message);
+}
+```
+
+```javascript Success Notifications
+// Notify on successful completion
+function notifySuccess(taskName, details) {
+  const message = `Task Completed Successfully
+  
+Task: ${taskName}
+Details: ${details}
+Completed At: ${new Date().toLocaleString()}
+
+Your automation workflow has finished.`;
+  
+  Android.sendAgentEmail(
+    "user@example.com",
+    "✓ Task Complete: " + taskName,
+    message
+  );
+}
+
+function postToInstagram() {
+  // ... posting logic ...
+  notifySuccess("Instagram Post", "Posted photo with caption");
+}
+```
+
+```javascript Status Updates
+// Send periodic status updates
+function sendStatusUpdate() {
+  const uptime = Math.floor(Math.random() * 100); // Example
+  const status = uptime > 95 ? "Excellent" : "Good";
+  
+  const update = `PhoneClaw Status Update
+  
+Status: ${status}
+Uptime: ${uptime}%
+Last Check: ${new Date().toLocaleString()}
+
+All systems operational.`;
+  
+  Android.sendAgentEmail(
+    "monitoring@example.com",
+    "PhoneClaw Status - " + status,
+    update
+  );
+}
+
+// Send status every 6 hours
+Android.schedule("sendStatusUpdate()", "0 0 */6 * * *");
+```
+
+</CodeGroup>
+
+## Implementation Details
+
+### Source Location
+
+`MainActivity.kt:738`
+
+```kotlin
+@JavascriptInterface
+fun sendAgentEmail(to: String, subject: String, message: String) {
+    CoroutineScope(Dispatchers.IO).launch {
+        try {
+            val securityKey = "af3j2kdw234" // same as your Node.js endpoint
+            val apiUrl = "https://yourserver.com/sendAgentEmail" // update to your real server
+            
+            val json = JSONObject().apply {
+                put("security", securityKey)
+                put("to", to)
+                put("subject", subject)
+                put("message", message)
+            }
+            
+            val client = OkHttpClient.Builder()
+                .connectTimeout(30, TimeUnit.SECONDS)
+                .readTimeout(30, TimeUnit.SECONDS)
+                .build()
+            
+            val body = json.toString()
+                .toRequestBody("application/json".toMediaTypeOrNull())
+            
+            val request = Request.Builder()
+                .url(apiUrl)
+                .post(body)
+                .addHeader("Content-Type", "application/json")
+                .build()
+            
+            val response = client.newCall(request).execute()
+            val responseBody = response.body?.string() ?: ""
+            
+            if (response.isSuccessful) {
+                Log.i("AndroidJSInterface", "Email sent successfully: $responseBody")
+                speakText("Email sent to $to")
+            } else {
+                Log.e("AndroidJSInterface", "Email send failed: ${response.code} ${responseBody}")
+                speakText("Failed to send email to $to")
+            }
+        } catch (e: Exception) {
+            Log.e("AndroidJSInterface", "Error sending email: ${e.message}")
+            speakText("Error sending email")
+        }
+    }
+}
+```
+
+### Email Service
+
+The function sends emails through a backend API:
+- HTTP POST to configured server endpoint
+- Requires security key authentication
+- 30-second timeout for requests
+- Asynchronous execution (non-blocking)
+
+<Info>
+  Email delivery is asynchronous. The function returns immediately while the email is sent in the background.
+</Info>
+
+## Configuration
+
+<Warning>
+  The email server endpoint URL and security key are configured in the MainActivity source code. You must update these values to use your own email service.
+</Warning>
+
+To configure the email service:
+
+1. Set up a backend email API endpoint
+2. Update `apiUrl` in `MainActivity.kt:742`
+3. Update `securityKey` in `MainActivity.kt:741`
+4. Rebuild the app
+
+### Backend API Format
+
+Your email endpoint should accept:
+
+```json
+{
+  "security": "your-security-key",
+  "to": "recipient@example.com",
+  "subject": "Email subject",
+  "message": "Email body"
+}
+```
+
+And return:
+
+```json
+{
+  "success": true,
+  "messageId": "abc123"
+}
+```
+
+## Complete Examples
+
+### Automation Report System
+
+```javascript
+const ADMIN_EMAIL = "admin@example.com";
+
+function sendAutomationReport(taskName, status, details) {
+  const timestamp = new Date().toLocaleString();
+  const statusEmoji = status === "success" ? "✓" : "✗";
+  
+  const report = `
+Automation Report
+${'='.repeat(50)}
+
+Task: ${taskName}
+Status: ${statusEmoji} ${status.toUpperCase()}
+Timestamp: ${timestamp}
+
+Details:
+${details}
+
+${'='.repeat(50)}
+Generated by PhoneClaw
+  `;
+  
+  Android.sendAgentEmail(
+    ADMIN_EMAIL,
+    `${statusEmoji} ${taskName} - ${status}`,
+    report
+  );
+}
+
+// Usage
+function postToSocialMedia() {
+  try {
+    // ... posting logic ...
+    sendAutomationReport(
+      "Social Media Post",
+      "success",
+      "Posted to Instagram with caption"
+    );
+  } catch (e) {
+    sendAutomationReport(
+      "Social Media Post",
+      "failed",
+      "Error: " + e.message
+    );
+  }
+}
+```
+
+### Multi-Recipient Notifications
+
+```javascript
+function notifyTeam(subject, message) {
+  const recipients = [
+    "admin@example.com",
+    "dev@example.com",
+    "ops@example.com"
+  ];
+  
+  recipients.forEach(email => {
+    Android.sendAgentEmail(email, subject, message);
+    Android.delay(1000); // Avoid rate limiting
+  });
+  
+  Android.speakText("Team notified");
+}
+
+// Usage
+notifyTeam(
+  "System Alert",
+  "Critical automation failure detected"
+);
+```
+
+### Scheduled Reports
+
+```javascript
+// Weekly summary every Monday at 9 AM
+Android.schedule("sendWeeklyReport()", "0 0 9 * * 1");
+
+function sendWeeklyReport() {
+  const report = generateWeeklyStats();
+  
+  Android.sendAgentEmail(
+    "reports@example.com",
+    "Weekly Automation Report - Week " + getWeekNumber(),
+    report
+  );
+  
+  Android.speakText("Weekly report sent");
+}
+
+function generateWeeklyStats() {
+  return `Weekly Summary
+  
+Tasks Run: 150
+Success Rate: 95%
+Errors: 7
+Uptime: 99.2%
+
+Top Tasks:
+1. Instagram posts: 35
+2. Message checks: 84
+3. Data collection: 31`;
+}
+
+function getWeekNumber() {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), 0, 1);
+  const diff = now - start;
+  const oneWeek = 1000 * 60 * 60 * 24 * 7;
+  return Math.ceil(diff / oneWeek);
+}
+```
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Use descriptive subject lines">
+    Include context in subjects for easy filtering and prioritization.
+    
+    ```javascript
+    // Good
+    Android.sendAgentEmail(
+      "user@example.com",
+      "[PhoneClaw] Instagram Post Failed - 2024-03-15",
+      "Details..."
+    );
+    
+    // Avoid
+    Android.sendAgentEmail(
+      "user@example.com",
+      "Error",
+      "Something went wrong"
+    );
+    ```
+  </Accordion>
+
+  <Accordion title="Include timestamps and context">
+    Always include when and where events occurred.
+    
+    ```javascript
+    const context = `
+Timestamp: ${new Date().toISOString()}
+Device: ${getDeviceId()}
+Task: ${taskName}
+Details: ${details}`;
+    
+    Android.sendAgentEmail("user@example.com", subject, context);
+    ```
+  </Accordion>
+
+  <Accordion title="Avoid email spam">
+    Rate-limit notifications to prevent flooding inboxes.
+    
+    ```javascript
+    let lastEmailTime = 0;
+    const MIN_EMAIL_INTERVAL = 5 * 60 * 1000; // 5 minutes
+    
+    function sendThrottledEmail(to, subject, message) {
+      const now = Date.now();
+      if (now - lastEmailTime > MIN_EMAIL_INTERVAL) {
+        Android.sendAgentEmail(to, subject, message);
+        lastEmailTime = now;
+      }
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Use for critical events only">
+    Reserve emails for important events. Use speech or logs for routine updates.
+    
+    ```javascript
+    // Email for critical errors
+    if (errorLevel === "critical") {
+      Android.sendAgentEmail(/*...*/);
+    } else {
+      // Just log or speak for minor issues
+      Android.speakText("Minor error occurred");
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Limitations
+
+<Warning>
+  - Requires configured backend email service
+  - 30-second timeout per request
+  - No support for HTML emails (plain text only)
+  - No attachment support
+  - No delivery confirmation
+  - Rate limiting depends on backend service
+</Warning>
+
+## Troubleshooting
+
+### Email Not Sending
+
+Check these common issues:
+
+1. **Backend not configured**: Verify `apiUrl` points to valid endpoint
+2. **Security key mismatch**: Ensure key matches backend
+3. **Network issues**: Check device internet connection
+4. **Backend errors**: Check backend logs
+
+### Testing
+
+```javascript
+// Test email function
+function testEmail() {
+  Android.speakText("Testing email service");
+  
+  Android.sendAgentEmail(
+    "your-email@example.com",
+    "PhoneClaw Test Email",
+    "This is a test message from PhoneClaw. If you receive this, email functionality is working correctly."
+  );
+  
+  Android.delay(3000);
+  Android.speakText("Check your inbox");
+}
+
+testEmail();
+```
+
+## Related Functions
+
+- [speakText()](/api/speech) - Alternative notification method via TTS
+- [schedule()](/api/scheduling) - Schedule automated email reports
+- [delay()](/api/timing) - Add delays between multiple emails

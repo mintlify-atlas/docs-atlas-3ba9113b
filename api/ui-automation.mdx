@@ -1,0 +1,490 @@
+---
+title: 'UI Automation'
+description: 'Screen interaction and gesture simulation functions'
+icon: 'hand-pointer'
+---
+
+## Overview
+
+ClawScript provides a comprehensive set of functions for automating UI interactions on Android. These functions simulate touch gestures, keyboard input, and screen navigation.
+
+<Info>
+  All UI automation functions require Android Accessibility Service to be enabled. See [Accessibility Service Setup](/guides/setup-device).
+</Info>
+
+## Click & Tap Functions
+
+### simulateClick()
+
+Simulates a tap at specific screen coordinates.
+
+<ParamField path="x" type="number" required>
+  X coordinate in pixels from left edge of screen.
+</ParamField>
+
+<ParamField path="y" type="number" required>
+  Y coordinate in pixels from top edge of screen.
+</ParamField>
+
+```javascript
+// Click at coordinates (100, 200)
+Android.simulateClick(100, 200);
+Android.delay(1000);
+
+// Click center of screen (assuming 800x1600 display)
+Android.simulateClick(400, 800);
+```
+
+### doubleClick()
+
+Performs a double-tap gesture at specified coordinates.
+
+<ParamField path="x" type="number" required>
+  X coordinate in pixels.
+</ParamField>
+
+<ParamField path="y" type="number" required>
+  Y coordinate in pixels.
+</ParamField>
+
+```javascript
+// Double tap to like
+Android.doubleClick(400, 800);
+Android.delay(500);
+```
+
+### longPress()
+
+Performs a long press (press and hold) gesture.
+
+<ParamField path="x" type="number" required>
+  X coordinate in pixels.
+</ParamField>
+
+<ParamField path="y" type="number" required>
+  Y coordinate in pixels.
+</ParamField>
+
+```javascript
+// Long press to open context menu
+Android.longPress(400, 600);
+Android.delay(1500);
+```
+
+## Content-Based Clicking
+
+### clickNodesByContentDescription()
+
+Clicks elements by their accessibility content description.
+
+<ParamField path="description" type="string" required>
+  Content description text to match (e.g., "Share", "Like", "Next").
+</ParamField>
+
+```javascript
+// Click by button label
+Android.clickNodesByContentDescription("Next");
+Android.delay(1000);
+
+Android.clickNodesByContentDescription("Share");
+Android.delay(1000);
+
+Android.clickNodesByContentDescription("Send");
+```
+
+<Tip>
+  This is more reliable than coordinate-based clicking since UI layouts can vary across devices.
+</Tip>
+
+## Typing & Text Input
+
+### simulateTypeInFirstEditableField()
+
+Enters text in the first editable field on screen.
+
+<ParamField path="text" type="string" required>
+  Text to type into the field.
+</ParamField>
+
+```javascript
+// Type username
+Android.simulateTypeInFirstEditableField("john_doe");
+Android.delay(1000);
+```
+
+### simulateTypeInSecondEditableField()
+
+Enters text in the second editable field on screen.
+
+<ParamField path="text" type="string" required>
+  Text to type into the field.
+</ParamField>
+
+```javascript
+// Type password
+Android.simulateTypeInSecondEditableField("myPassword123");
+Android.delay(1000);
+```
+
+### simulateType()
+
+Types text in a field identified by View ID.
+
+<ParamField path="id" type="string" required>
+  Android View ID of the target field.
+</ParamField>
+
+<ParamField path="text" type="string" required>
+  Text to type.
+</ParamField>
+
+```javascript
+// Type in specific field
+Android.simulateType("com.example.app:id/username", "john_doe");
+Android.delay(1000);
+```
+
+### simulateTypeByClass()
+
+Types text in a field by its class name.
+
+<ParamField path="className" type="string" required>
+  Android class name (e.g., "android.widget.EditText").
+</ParamField>
+
+<ParamField path="text" type="string" required>
+  Text to type.
+</ParamField>
+
+```javascript
+Android.simulateTypeByClass("android.widget.EditText", "Hello");
+```
+
+### pressEnterKey()
+
+Simulates pressing the Enter/Return key.
+
+```javascript
+// Submit form
+Android.simulateTypeInFirstEditableField("search query");
+Android.delay(500);
+Android.pressEnterKey();
+Android.delay(2000);
+```
+
+## Swipe & Scroll Functions
+
+### swipeUp()
+
+Simulates an upward swipe gesture (scrolling down the page).
+
+```javascript
+// Scroll feed
+Android.swipeUp();
+Android.delay(1000);
+Android.swipeUp();
+Android.delay(1000);
+```
+
+### swipeDown()
+
+Simulates a downward swipe gesture (scrolling up the page).
+
+```javascript
+// Pull to refresh
+Android.swipeDown();
+Android.delay(2000);
+```
+
+### swipeLeft()
+
+Simulates a left swipe gesture.
+
+```javascript
+// Navigate to next story
+Android.swipeLeft();
+Android.delay(800);
+```
+
+### swipeRight()
+
+Simulates a right swipe gesture.
+
+```javascript
+// Navigate to previous story
+Android.swipeRight();
+Android.delay(800);
+```
+
+### simulateScrollToBottom()
+
+Scrolls to the bottom of a scrollable view.
+
+```javascript
+// Scroll to end of page
+Android.simulateScrollToBottom();
+Android.delay(1500);
+```
+
+### simulateScrollToTop()
+
+Scrolls to the top of a scrollable view.
+
+```javascript
+// Return to top
+Android.simulateScrollToTop();
+Android.delay(1500);
+```
+
+## View ID Interactions
+
+### clickElementByViewId()
+
+Clicks an element by its Android View ID.
+
+<ParamField path="viewId" type="string" required>
+  Full View ID (e.g., "com.instagram.android:id/profile_tab").
+</ParamField>
+
+```javascript
+Android.clickElementByViewId("com.example.app:id/submit_button");
+Android.delay(1000);
+```
+
+## Complete Workflow Examples
+
+<CodeGroup>
+
+```javascript Login Flow
+function loginToApp(username, password) {
+  Android.speakText("Starting login");
+  
+  // Click username field
+  Android.simulateClick(400, 600);
+  Android.delay(500);
+  
+  // Enter username
+  Android.simulateTypeInFirstEditableField(username);
+  Android.delay(1000);
+  
+  // Click password field
+  Android.simulateClick(400, 800);
+  Android.delay(500);
+  
+  // Enter password
+  Android.simulateTypeInSecondEditableField(password);
+  Android.delay(1000);
+  
+  // Submit
+  Android.pressEnterKey();
+  Android.delay(3000);
+  
+  Android.speakText("Login complete");
+}
+
+loginToApp("john_doe", "myPassword123");
+```
+
+```javascript Social Media Post
+function createPost(caption) {
+  Android.speakText("Creating post");
+  
+  // Open new post
+  Android.simulateClick(400, 1800);
+  Android.delay(2000);
+  
+  // Select photo
+  Android.simulateClick(200, 500);
+  Android.delay(1500);
+  
+  // Next button
+  Android.clickNodesByContentDescription("Next");
+  Android.delay(1500);
+  
+  // Next again (filters screen)
+  Android.clickNodesByContentDescription("Next");
+  Android.delay(1500);
+  
+  // Add caption
+  Android.simulateTypeInFirstEditableField(caption);
+  Android.delay(1000);
+  
+  // Share
+  Android.clickNodesByContentDescription("Share");
+  Android.delay(3000);
+  
+  Android.speakText("Post created");
+}
+
+createPost("Check out this amazing view!");
+```
+
+```javascript Search and Navigate
+function searchAndSelect(query, resultIndex) {
+  Android.speakText("Searching for " + query);
+  
+  // Click search bar
+  Android.simulateClick(400, 200);
+  Android.delay(800);
+  
+  // Enter search query
+  Android.simulateTypeInFirstEditableField(query);
+  Android.delay(1000);
+  
+  // Submit search
+  Android.pressEnterKey();
+  Android.delay(2000);
+  
+  // Scroll to result
+  for (let i = 0; i < resultIndex; i++) {
+    Android.swipeUp();
+    Android.delay(500);
+  }
+  
+  // Select result
+  Android.simulateClick(400, 600);
+  Android.delay(1500);
+  
+  Android.speakText("Result selected");
+}
+
+searchAndSelect("coffee shops", 2);
+```
+
+```javascript Form Submission
+function fillMultiStepForm(data) {
+  Android.speakText("Filling form");
+  
+  // Page 1: Name
+  Android.simulateTypeInFirstEditableField(data.name);
+  Android.delay(1000);
+  Android.clickNodesByContentDescription("Next");
+  Android.delay(1500);
+  
+  // Page 2: Email
+  Android.simulateTypeInFirstEditableField(data.email);
+  Android.delay(1000);
+  Android.clickNodesByContentDescription("Next");
+  Android.delay(1500);
+  
+  // Page 3: Phone
+  Android.simulateTypeInFirstEditableField(data.phone);
+  Android.delay(1000);
+  Android.clickNodesByContentDescription("Submit");
+  Android.delay(3000);
+  
+  Android.speakText("Form submitted");
+}
+
+fillMultiStepForm({
+  name: "John Doe",
+  email: "john@example.com",
+  phone: "555-1234"
+});
+```
+
+</CodeGroup>
+
+## Screen Detection
+
+### isTextPresentOnScreen()
+
+Checks if specific text is visible on screen using AI vision.
+
+<ParamField path="text" type="string" required>
+  Text or description to search for.
+</ParamField>
+
+<ResponseField name="return" type="boolean">
+  Returns `true` if text is found, `false` otherwise.
+</ResponseField>
+
+```javascript
+// Check for error message
+if (Android.isTextPresentOnScreen("Error")) {
+  Android.speakText("Error detected");
+  // Handle error
+}
+
+// Check for success
+if (Android.isTextPresentOnScreen("Success")) {
+  Android.speakText("Operation successful");
+}
+
+// Check for specific element
+if (Android.isTextPresentOnScreen("Login")) {
+  Android.speakText("Need to log in");
+  loginToApp("user", "pass");
+}
+```
+
+<Warning>
+  This function uses AI vision analysis and may take 1-2 seconds to complete. Use sparingly for critical checks.
+</Warning>
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Always add delays after interactions">
+    UI elements need time to respond. Add 500-1500ms delays after every action.
+    
+    ```javascript
+    Android.simulateClick(100, 200);
+    Android.delay(1000); // Essential!
+    ```
+  </Accordion>
+
+  <Accordion title="Use content descriptions over coordinates">
+    Content description clicks are more reliable across devices.
+    
+    ```javascript
+    // Good
+    Android.clickNodesByContentDescription("Share");
+    
+    // Less reliable
+    Android.simulateClick(650, 1200);
+    ```
+  </Accordion>
+
+  <Accordion title="Verify state before actions">
+    Check screen state before performing actions.
+    
+    ```javascript
+    if (Android.isTextPresentOnScreen("Login")) {
+      // Perform login
+    } else {
+      Android.speakText("Already logged in");
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Handle errors gracefully">
+    Wrap UI automation in try-catch blocks.
+    
+    ```javascript
+    try {
+      Android.simulateClick(100, 200);
+      Android.delay(1000);
+    } catch (e) {
+      Android.speakText("Click failed");
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Limitations
+
+<Warning>
+  - Requires Accessibility Service enabled
+  - Coordinates vary by device screen size and resolution
+  - Some apps block accessibility interactions
+  - Rapid interactions may be rate-limited
+  - Background execution may be restricted by Android
+</Warning>
+
+## Related Functions
+
+- [delay()](/api/timing) - Essential for timing UI interactions
+- [speakText()](/api/speech) - Announce automation steps
+- [magicClicker()](/api/magic-clicker) - AI-powered element detection
+- [magicScraper()](/api/magic-scraper) - Extract screen information

@@ -1,0 +1,274 @@
+---
+title: "Common Issues"
+description: "Solutions to frequently encountered problems with PhoneClaw setup and automation"
+---
+
+## Installation Issues
+
+### APK Installation Failed
+
+<Accordion title="Error: App not installed">
+  **Symptoms:** Installation fails with "App not installed" message.
+
+  **Solutions:**
+  - Enable "Install from Unknown Sources" in Android settings
+  - Check that you have sufficient storage space (at least 100MB free)
+  - Uninstall any previous version of PhoneClaw before installing
+  - Verify the APK file downloaded completely and isn't corrupted
+  - Try installing via ADB: `adb install phoneclaw.apk`
+</Accordion>
+
+<Accordion title="Error: Parse error">
+  **Symptoms:** "There was a problem parsing the package" error.
+
+  **Solutions:**
+  - Ensure your Android version is 7.0 (API 24) or higher
+  - Re-download the APK file as it may be corrupted
+  - Check that your device architecture is supported (ARM/ARM64)
+  - Build the APK directly from source if downloaded version fails
+</Accordion>
+
+### Build Errors
+
+<Accordion title="Gradle sync failed">
+  **Symptoms:** Android Studio fails to sync Gradle dependencies.
+
+  **Solutions:**
+  - Update Android Studio to the latest version
+  - Check your internet connection for downloading dependencies
+  - Clear Gradle cache: **File** > **Invalidate Caches / Restart**
+  - Delete `.gradle` folder in project root and sync again
+  - Verify JDK version is 11 or higher in **File** > **Project Structure**
+</Accordion>
+
+<Accordion title="Missing API keys">
+  **Symptoms:** Build fails with "MOONDREAM_AUTH not found" error.
+
+  **Solutions:**
+  Create `local.properties` file in project root with:
+  ```properties
+  MOONDREAM_AUTH=YOUR_TOKEN_HERE
+  ```
+  - Never commit API keys to version control
+  - Obtain your Moondream token from your account dashboard
+  - Restart Android Studio after adding the key
+</Accordion>
+
+## Permission Issues
+
+### Accessibility Service Not Working
+
+<Accordion title="Automation commands don't work">
+  **Symptoms:** Scripts run but don't interact with UI elements.
+
+  **Solutions:**
+  1. Open Android **Settings** > **Accessibility**
+  2. Find **PhoneClaw** in the list
+  3. Toggle the accessibility service ON
+  4. Grant the permission when prompted
+  5. Return to PhoneClaw and try again
+
+  **Note:** Some devices hide accessibility settings. Search for "accessibility" in Settings search.
+</Accordion>
+
+<Accordion title="Permission keeps turning off">
+  **Symptoms:** Accessibility service permission disables automatically.
+
+  **Solutions:**
+  - Disable battery optimization for PhoneClaw:
+    - **Settings** > **Battery** > **Battery Optimization**
+    - Find PhoneClaw and select **Don't optimize**
+  - Add PhoneClaw to protected apps list (MIUI, EMUI, ColorOS)
+  - Disable "Remove permissions if app is unused" for PhoneClaw
+  - Check manufacturer-specific app settings for background restrictions
+</Accordion>
+
+### Microphone/Voice Command Issues
+
+<Accordion title="Voice commands not recognized">
+  **Symptoms:** App doesn't respond to voice input.
+
+  **Solutions:**
+  - Grant microphone permission in Android settings
+  - Check that device microphone is working in other apps
+  - Speak clearly and close to the device
+  - Ensure no other app is using the microphone
+  - Try restarting PhoneClaw after granting permissions
+</Accordion>
+
+## Automation Issues
+
+### magicClicker Not Finding Elements
+
+<Accordion title="Elements not being clicked">
+  **Symptoms:** `magicClicker()` fails to find or tap UI elements.
+
+  **Solutions:**
+  - Use more specific, descriptive element names
+  - Add delays before magicClicker to allow UI to load:
+    ```javascript
+    await delay(2000);
+    await magicClicker("Submit button");
+    ```
+  - Check that element is visible on screen (not scrolled off)
+  - Verify accessibility service permission is enabled
+  - Try different descriptions (e.g., "blue submit button" instead of "submit")
+  - Some apps block accessibility interactions - test with different apps
+</Accordion>
+
+<Accordion title="Wrong element being clicked">
+  **Symptoms:** magicClicker taps the wrong UI element.
+
+  **Solutions:**
+  - Be more specific in your description:
+    ```javascript
+    // Instead of:
+    magicClicker("button");
+    
+    // Use:
+    magicClicker("blue login button at the bottom");
+    ```
+  - Scroll to make target element more prominent
+  - Use position hints ("top", "bottom", "left", "right")
+  - Verify element descriptions match visible text or labels
+</Accordion>
+
+### magicScraper Not Returning Data
+
+<Accordion title="Scraper returns empty or incorrect data">
+  **Symptoms:** `magicScraper()` returns null or wrong information.
+
+  **Solutions:**
+  - Ensure text is clearly visible on screen
+  - Add delay before scraping to allow content to load:
+    ```javascript
+    await delay(1500);
+    const code = await magicScraper("The 6-digit verification code");
+    ```
+  - Make questions specific and focused on visible content
+  - Verify the text you're looking for is actually displayed
+  - Some fonts or colors may be harder for vision to read
+  - Take a screenshot to verify what's visible to the scraper
+</Accordion>
+
+### Scheduling Problems
+
+<Accordion title="Scheduled tasks not running">
+  **Symptoms:** Cron-scheduled automations don't execute at expected times.
+
+  **Solutions:**
+  - Verify cron expression is valid: [Cron Expression Validator](https://crontab.guru/)
+  - Disable battery optimization for PhoneClaw
+  - Check that accessibility service is enabled
+  - Ensure device isn't in deep sleep mode during scheduled time
+  - Add PhoneClaw to protected apps (manufacturer-specific)
+  - Review scheduled tasks in PhoneClaw settings
+  - Try a simpler schedule first (e.g., every 5 minutes) to test
+</Accordion>
+
+<Accordion title="clearSchedule() not working">
+  **Symptoms:** Scheduled tasks continue running after clearSchedule().
+
+  **Solutions:**
+  - Restart PhoneClaw app after calling clearSchedule()
+  - Check for multiple script instances that might be scheduling
+  - Manually clear schedules from PhoneClaw settings
+  - Verify clearSchedule() is actually being called in your script
+</Accordion>
+
+## Performance Issues
+
+### Slow Automation Execution
+
+<Accordion title="Scripts run slowly">
+  **Symptoms:** Automations take much longer than expected.
+
+  **Solutions:**
+  - Reduce delay durations where possible (but keep enough for UI loading)
+  - Use more specific magicClicker descriptions to reduce search time
+  - Close unnecessary background apps to free resources
+  - Restart device if it's been running for extended periods
+  - Consider device limitations (older/budget phones are slower)
+  - Break complex automations into smaller, focused scripts
+</Accordion>
+
+### App Crashes or Freezes
+
+<Accordion title="PhoneClaw crashes during automation">
+  **Symptoms:** App closes unexpectedly or becomes unresponsive.
+
+  **Solutions:**
+  - Update to latest version of PhoneClaw
+  - Clear app cache: **Settings** > **Apps** > **PhoneClaw** > **Clear Cache**
+  - Check device has sufficient free RAM (at least 500MB)
+  - Avoid running too many simultaneous automations
+  - Add error handling in scripts:
+    ```javascript
+    try {
+      await magicClicker("Button");
+    } catch (error) {
+      speakText("Error: " + error);
+    }
+    ```
+  - Report persistent crashes on GitHub with device info and logs
+</Accordion>
+
+## Device-Specific Issues
+
+### MIUI (Xiaomi) Devices
+
+<Warning>
+  MIUI has aggressive battery optimization that can interfere with PhoneClaw.
+</Warning>
+
+**Required settings:**
+1. **Settings** > **Battery & Performance** > **App battery saver** > PhoneClaw > **No restrictions**
+2. **Settings** > **Apps** > **Manage apps** > PhoneClaw > **Autostart** > Enable
+3. **Security** > **Permissions** > **Autostart** > Enable for PhoneClaw
+
+### Samsung Devices
+
+**Required settings:**
+1. **Settings** > **Battery** > **Background usage limits** > Remove PhoneClaw
+2. **Settings** > **Apps** > **PhoneClaw** > **Battery** > **Optimize battery usage** > Off
+
+### Huawei (EMUI) Devices
+
+**Required settings:**
+1. **Settings** > **Battery** > **App launch** > PhoneClaw > Manage manually
+2. Enable all three toggles (Auto-launch, Secondary launch, Run in background)
+
+## Getting More Help
+
+If your issue isn't listed here:
+
+<CardGroup cols={2}>
+  <Card
+    title="Check FAQ"
+    icon="circle-question"
+    href="/troubleshooting/faq"
+  >
+    Review frequently asked questions for additional help
+  </Card>
+  <Card
+    title="Debugging Guide"
+    icon="bug"
+    href="/troubleshooting/debugging"
+  >
+    Learn how to debug automation scripts
+  </Card>
+  <Card
+    title="Discord Support"
+    icon="discord"
+    href="https://discord.gg/n9nbZUrw"
+  >
+    Get help from the community
+  </Card>
+  <Card
+    title="GitHub Issues"
+    icon="github"
+    href="https://github.com/rohanarun/phoneclaw/issues"
+  >
+    Report bugs or request features
+  </Card>
+</CardGroup>

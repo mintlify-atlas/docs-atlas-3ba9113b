@@ -1,0 +1,618 @@
+---
+title: 'Node Operations'
+description: 'Methods for finding, clicking, and interacting with UI elements'
+---
+
+## Overview
+
+Node operations allow you to find and interact with UI elements (nodes) in the accessibility tree. These methods provide various search strategies to locate elements by content description, view ID, text, class name, and more.
+
+## Finding and Clicking Elements
+
+### Click by Content Description
+
+Find and click an element by its content description (accessibility label).
+
+```kotlin
+fun clickByDesc(description: String)
+```
+
+<ParamField path="description" type="String" required>
+  The content description text to search for (case-insensitive, partial match)
+</ParamField>
+
+**Example:**
+```kotlin
+val service = MyAccessibilityService.instance
+service?.clickByDesc("Submit")
+service?.clickByDesc("Next")
+```
+
+<Info>
+  This method searches recursively through the entire UI tree and clicks the first clickable element whose content description contains the specified text.
+</Info>
+
+---
+
+### Click by View ID
+
+Click element(s) by their Android resource ID.
+
+```kotlin
+fun clickElementByViewId(viewId: String): Boolean
+```
+
+<ParamField path="viewId" type="String" required>
+  The full resource ID (e.g., "com.example.app:id/button_submit")
+</ParamField>
+
+<ResponseField name="returns" type="Boolean">
+  `true` if at least one element was clicked, `false` otherwise
+</ResponseField>
+
+**Example:**
+```kotlin
+val service = MyAccessibilityService.instance
+val success = service?.clickElementByViewId("com.zhiliaoapp.musically:id/upload_button")
+if (success == true) {
+    println("Upload button clicked")
+}
+```
+
+<Note>
+  By default, this method clicks up to the first 3 elements with the specified view ID, with 120ms delay between clicks. This prevents duplicate clicks on the same element.
+</Note>
+
+#### Advanced View ID Methods
+
+**Click Multiple View IDs (Fallback)**
+```kotlin
+fun clickElementByViewIds(vararg viewIds: String): Boolean
+```
+
+Tries multiple view IDs until one succeeds:
+```kotlin
+service?.clickElementByViewIds(
+    "com.app:id/button_v1",
+    "com.app:id/button_v2",
+    "com.app:id/button_legacy"
+)
+```
+
+**Click All Elements with View ID**
+```kotlin
+fun clickAllElementsByViewId(viewId: String): Int
+```
+
+Clicks every element with the specified view ID (returns count of clicked elements).
+
+---
+
+### Click by Text Label
+
+Find and click an element by its exact text content.
+
+```kotlin
+fun clickButtonWithLabel(label: String)
+```
+
+<ParamField path="label" type="String" required>
+  The exact text label to search for (case-sensitive)
+</ParamField>
+
+**Example:**
+```kotlin
+service?.clickButtonWithLabel("Sign In")
+service?.clickButtonWithLabel("Accept")
+```
+
+---
+
+### Click by Content Description (Collection)
+
+Click the first element with an exact content description match.
+
+```kotlin
+fun clickNodesByContentDescription(targetContentDesc: String)
+```
+
+<ParamField path="targetContentDesc" type="String" required>
+  The exact content description to match
+</ParamField>
+
+**Example:**
+```kotlin
+service?.clickNodesByContentDescription("Profile menu")
+```
+
+---
+
+## Advanced Node Finding
+
+### Find by Class Name and Index
+
+Find a node by its class name and position in the tree.
+
+```kotlin
+fun findNodeByClassNameAndIndex(className: String, index: Int): AccessibilityNodeInfo?
+```
+
+<ParamField path="className" type="String" required>
+  The fully qualified class name (e.g., "android.widget.Button")
+</ParamField>
+
+<ParamField path="index" type="Int" required>
+  Zero-based index of the element (in pre-order traversal)
+</ParamField>
+
+<ResponseField name="returns" type="AccessibilityNodeInfo?">
+  The found node, or `null` if not found
+</ResponseField>
+
+**Example:**
+```kotlin
+// Find the third Button in the tree
+val button = service?.findNodeByClassNameAndIndex("android.widget.Button", 2)
+if (button != null) {
+    service?.performNodeClick(button)
+}
+```
+
+---
+
+### Find by Class, Index, and String
+
+Find a node matching class name, sibling index, and optional text content.
+
+```kotlin
+fun findNodeByClassNameAndIndexAndString(
+    root: AccessibilityNodeInfo? = rootInActiveWindow,
+    className: String,
+    targetIndex: Int,
+    substring: String?
+): AccessibilityNodeInfo?
+```
+
+<ParamField path="root" type="AccessibilityNodeInfo?" default="rootInActiveWindow">
+  The root node to start searching from
+</ParamField>
+
+<ParamField path="className" type="String" required>
+  The fully qualified class name to match
+</ParamField>
+
+<ParamField path="targetIndex" type="Int" required>
+  The target index among siblings (relative position in parent). Use `-1` to ignore index.
+</ParamField>
+
+<ParamField path="substring" type="String?" required>
+  Optional text/contentDescription that the node should contain. Use `null` to ignore.
+</ParamField>
+
+<ResponseField name="returns" type="AccessibilityNodeInfo?">
+  The first matching node, or `null` if not found
+</ResponseField>
+
+**Example:**
+```kotlin
+// Find the second RelativeLayout that contains "Settings"
+val node = service?.findNodeByClassNameAndIndexAndString(
+    className = "android.widget.RelativeLayout",
+    targetIndex = 1,
+    substring = "Settings"
+)
+```
+
+---
+
+## Clicking Mechanisms
+
+### Perform Node Click
+
+Attempt to click a node by traversing up to find a clickable parent.
+
+```kotlin
+fun performNodeClick(node: AccessibilityNodeInfo)
+```
+
+<ParamField path="node" type="AccessibilityNodeInfo" required>
+  The node to click (or its nearest clickable parent)
+</ParamField>
+
+**Example:**
+```kotlin
+val node = service?.findNodeByClassNameAndIndex("android.widget.TextView", 0)
+if (node != null) {
+    service?.performNodeClick(node)
+}
+```
+
+---
+
+### Click at Approximate Coordinates
+
+Click any clickable element near specific coordinates.
+
+```kotlin
+fun clickAtApproximateCoordinates(x: Float, y: Float, tolerance: Float = 50f): Boolean
+```
+
+<ParamField path="x" type="Float" required>
+  The X coordinate in pixels
+</ParamField>
+
+<ParamField path="y" type="Float" required>
+  The Y coordinate in pixels
+</ParamField>
+
+<ParamField path="tolerance" type="Float" default="50f">
+  Search radius in pixels
+</ParamField>
+
+<ResponseField name="returns" type="Boolean">
+  `true` if a clickable element was found and clicked, `false` otherwise
+</ResponseField>
+
+**Example:**
+```kotlin
+// Click near position (500, 800) with 100px tolerance
+service?.clickAtApproximateCoordinates(500f, 800f, 100f)
+```
+
+---
+
+## Text Input Operations
+
+### Type in First Editable Field
+
+Find the first editable text field and enter text.
+
+```kotlin
+fun simulateTypeInFirstEditableField(inputText: String)
+```
+
+<ParamField path="inputText" type="String" required>
+  The text to enter into the field
+</ParamField>
+
+**Example:**
+```kotlin
+service?.simulateTypeInFirstEditableField("user@example.com")
+```
+
+<Info>
+  This method uses breadth-first search to find the first `EditText` that supports `ACTION_SET_TEXT`. The field is focused before text is entered.
+</Info>
+
+---
+
+### Type in Second Editable Field
+
+Find the second editable text field and enter text.
+
+```kotlin
+fun simulateTypeInSecondEditableField(inputText: String)
+```
+
+<ParamField path="inputText" type="String" required>
+  The text to enter into the second field
+</ParamField>
+
+**Example:**
+```kotlin
+// Type username in first field, password in second field
+service?.simulateTypeInFirstEditableField("username")
+service?.simulateTypeInSecondEditableField("password123")
+```
+
+---
+
+### Type in Third Editable Field
+
+```kotlin
+fun simulateTypeInThirdEditableField(inputText: String)
+```
+
+Same as second field, but targets the third editable field in traversal order.
+
+---
+
+### Type by Resource ID
+
+Enter text into a field identified by its resource ID.
+
+```kotlin
+fun simulateType(resourceId: String, text: String)
+```
+
+<ParamField path="resourceId" type="String" required>
+  The full resource ID of the input field
+</ParamField>
+
+<ParamField path="text" type="String" required>
+  The text to enter
+</ParamField>
+
+**Example:**
+```kotlin
+service?.simulateType("com.example.app:id/email_field", "user@example.com")
+```
+
+---
+
+### Type by Class Name
+
+Enter text into all fields matching a class name.
+
+```kotlin
+fun simulateTypeByClass(nodeClass: String, inputText: String)
+```
+
+<ParamField path="nodeClass" type="String" required>
+  The class name to match (e.g., "android.widget.EditText")
+</ParamField>
+
+<ParamField path="inputText" type="String" required>
+  The text to enter into matching fields
+</ParamField>
+
+**Example:**
+```kotlin
+service?.simulateTypeByClass("android.widget.EditText", "same text for all")
+```
+
+---
+
+## Text Extraction
+
+### Get All Text from Screen
+
+Extract all visible text from the current screen.
+
+```kotlin
+fun getAllTextFromScreen(): String
+```
+
+<ResponseField name="returns" type="String">
+  Concatenated text from all text nodes and content descriptions on screen
+</ResponseField>
+
+**Example:**
+```kotlin
+val screenText = service?.getAllTextFromScreen()
+println("Screen contains: $screenText")
+```
+
+---
+
+### Check if Text is Present
+
+Check if specific text exists anywhere on screen.
+
+```kotlin
+fun isTextPresentOnScreen(searchText: String): Boolean
+```
+
+<ParamField path="searchText" type="String" required>
+  The text to search for (case-insensitive, partial match)
+</ParamField>
+
+<ResponseField name="returns" type="Boolean">
+  `true` if the text is found in any node's text or content description
+</ResponseField>
+
+**Example:**
+```kotlin
+if (service?.isTextPresentOnScreen("Success") == true) {
+    println("Operation completed successfully")
+}
+```
+
+---
+
+### Get Content Description
+
+Get the content description of a node containing specific text.
+
+```kotlin
+fun getContentDescriptionForNodeContaining(searchString: String): String?
+```
+
+<ParamField path="searchString" type="String" required>
+  The substring to search for in node text or content description
+</ParamField>
+
+<ResponseField name="returns" type="String?">
+  The full content description of the found node, or `null` if not found
+</ResponseField>
+
+**Example:**
+```kotlin
+val desc = service?.getContentDescriptionForNodeContaining("Profile")
+println("Found content description: $desc")
+```
+
+---
+
+## Keyboard Actions
+
+### Press Enter Key
+
+Simulate pressing the Enter/Return key.
+
+```kotlin
+fun pressEnterKey()
+```
+
+**Example:**
+```kotlin
+service?.simulateTypeInFirstEditableField("search query")
+service?.pressEnterKey()
+```
+
+<Info>
+  This method tries three strategies in order:
+  1. Find and click a visible Enter/Done/Send button
+  2. Send `ACTION_IME_ENTER` to the focused field (API 33+)
+  3. Tap at the typical Enter key position as fallback
+</Info>
+
+---
+
+## Deletion Operations
+
+### Delete by Resource ID
+
+Clear text from a field identified by resource ID.
+
+```kotlin
+fun simulateDelete(resourceId: String)
+```
+
+<ParamField path="resourceId" type="String" required>
+  The resource ID of the field to clear
+</ParamField>
+
+**Example:**
+```kotlin
+service?.simulateDelete("com.example.app:id/search_field")
+```
+
+---
+
+### Delete by Class Name
+
+Clear text from all fields matching a class name.
+
+```kotlin
+fun simulateDeleteByClass(nodeClass: String)
+```
+
+<ParamField path="nodeClass" type="String" required>
+  The class name of fields to clear
+</ParamField>
+
+**Example:**
+```kotlin
+service?.simulateDeleteByClass("android.widget.EditText")
+```
+
+---
+
+## Specialized Click Methods
+
+### Click Element by Area
+
+Click an element based on its pixel area (width × height).
+
+```kotlin
+fun clickElementByArea(targetArea: Int)
+```
+
+<ParamField path="targetArea" type="Int" required>
+  The target area in square pixels
+</ParamField>
+
+**Example:**
+```kotlin
+// Click element with area of 5390 square pixels (77x70)
+service?.clickElementByArea(5390)
+```
+
+**Helper method for width/height:**
+```kotlin
+fun clickElementByDimensions(width: Int, height: Int)
+```
+
+---
+
+### Click Element by Area Range
+
+Click an element whose area falls within a range.
+
+```kotlin
+fun clickElementByAreaRange(minArea: Int, maxArea: Int)
+```
+
+<ParamField path="minArea" type="Int" required>
+  Minimum area in square pixels
+</ParamField>
+
+<ParamField path="maxArea" type="Int" required>
+  Maximum area in square pixels
+</ParamField>
+
+**Example:**
+```kotlin
+service?.clickElementByAreaRange(5000, 6000)
+```
+
+---
+
+## App-Specific Methods
+
+These methods are designed for specific apps but demonstrate advanced techniques:
+
+### Click First Gallery Item
+
+Clicks the first thumbnail in a TikTok-style gallery view.
+
+```kotlin
+fun clickFirstGalleryItem()
+```
+
+### Click Video Upload Button
+
+Finds and clicks the video upload button using multiple fallback strategies.
+
+```kotlin
+fun clickVideoUploadButton()
+```
+
+### Click First Song
+
+Clicks the first item in a RecyclerView (music list).
+
+```kotlin
+fun clickFirstSong()
+```
+
+### Click Bio Button
+
+Clicks a button whose content description starts with "Bio".
+
+```kotlin
+fun clickBioButton()
+```
+
+### Find Toggle Near Text
+
+Finds a toggle element (switch, checkbox) near text containing specific keywords.
+
+```kotlin
+fun findToggleNearText(text: String): AccessibilityNodeInfo?
+```
+
+---
+
+## Best Practices
+
+<Check>
+  Use the most specific search method available (View ID > Content Description > Text)
+</Check>
+
+<Check>
+  Always check for null results when using find methods
+</Check>
+
+<Check>
+  Add small delays between text input and clicking to allow UI to update
+</Check>
+
+<Warning>
+  View IDs may change between app versions - test automation regularly
+</Warning>
+
+<Note>
+  For production automation, prefer content descriptions over text as they're more stable across localizations
+</Note>

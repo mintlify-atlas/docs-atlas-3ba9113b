@@ -1,0 +1,554 @@
+---
+title: 'Vision-Assisted UI Targeting'
+description: 'How PhoneClaw uses Moondream AI to find and interact with UI elements using natural language'
+---
+
+## Overview
+
+PhoneClaw's **Vision Targeting** system uses the [Moondream AI](https://moondream.ai) vision model to locate UI elements on screen using natural language descriptions. This enables automation scripts to interact with elements that don't have accessible content descriptions or stable View IDs.
+
+## Why Vision-Based Targeting?
+
+Traditional Android automation relies on:
+- **Content Descriptions**: Often missing or inconsistent
+- **View IDs**: Change between app versions
+- **Text Matching**: Fails for icons, images, and dynamic content
+- **Coordinates**: Break on different screen sizes
+
+Vision targeting solves these problems by analyzing screenshots and understanding visual context.
+
+<Info>
+  **Magic Functions** like `magicClicker()` and `magicScraper()` use vision AI to interact with any visible element, regardless of its accessibility properties.
+</Info>
+
+## Architecture
+
+### 1. Screen Capture
+
+PhoneClaw captures screenshots using Android's MediaProjection API:
+
+```kotlin
+private fun takeScreenshotForAPI(): Bitmap? {
+    val pngBytes = ScreenCaptureService.lastCapturedPng ?: return null
+    return BitmapFactory.decodeByteArray(pngBytes, 0, pngBytes.size)
+}
+```
+
+### 2. Image Encoding
+
+Convert bitmap to base64 for API transmission:
+
+```kotlin
+private fun bitmapToBase64(bitmap: Bitmap): String {
+    val byteArrayOutputStream = ByteArrayOutputStream()
+    bitmap.compress(Bitmap.CompressFormat.JPEG, 85, byteArrayOutputStream)
+    val byteArray = byteArrayOutputStream.toByteArray()
+    return Base64.encodeToString(byteArray, Base64.NO_WRAP)
+}
+```
+
+### 3. Moondream API Integration
+
+PhoneClaw uses two Moondream endpoints:
+
+#### Point Detection (Element Location)
+
+From `MainActivity.kt:8498-8553`:
+
+```kotlin
+private suspend fun callMoondreamAPI(
+    base64Image: String, 
+    objectDescription: String
+): MoondreamPoint? = withContext(Dispatchers.IO) {
+    
+    val client = OkHttpClient.Builder()
+        .connectTimeout(30, TimeUnit.SECONDS)
+        .readTimeout(30, TimeUnit.SECONDS)
+        .build()
+    
+    val requestBody = JSONObject().apply {
+        put("image_url", "data:image/jpeg;base64,$base64Image")
+        put("object", objectDescription)
+    }
+    
+    val mediaType = "application/json; charset=utf-8".toMediaTypeOrNull()
+    val body = requestBody.toString().toRequestBody(mediaType)
+    
+    val request = Request.Builder()
+        .url("https://api.moondream.ai/v1/point")
+        .header("Content-Type", "application/json")
+        .header("X-Moondream-Auth", "YOUR_API_KEY")
+        .post(body)
+        .build()
+    
+    client.newCall(request).execute().use { response ->
+        val responseBody = response.body?.string() ?: ""
+        
+        if (response.isSuccessful) {
+            val responseJson = JSONObject(responseBody)
+            val pointsArray = responseJson.getJSONArray("points")
+            
+            if (pointsArray.length() > 0) {
+                val firstPoint = pointsArray.getJSONObject(0)
+                val x = firstPoint.getDouble("x")
+                val y = firstPoint.getDouble("y")
+                
+                MoondreamPoint(x, y)
+            } else {
+                null
+            }
+        } else {
+            null
+        }
+    }
+}
+```
+
+<Note>
+  **Response Format:** Moondream returns normalized coordinates (0.0-1.0) that must be scaled to device screen dimensions.
+</Note>
+
+#### Query API (Text Extraction)
+
+From `MainActivity.kt:5607-5664`:
+
+```kotlin
+private suspend fun callScrapingAPI(
+    base64Image: String, 
+    description: String
+): String = withContext(Dispatchers.IO) {
+    
+    val requestBody = JSONObject().apply {
+        put("image_url", "data:image/jpeg;base64,$base64Image")
+        put("question", description)
+    }
+    
+    val request = Request.Builder()
+        .url("https://api.moondream.ai/v1/query")
+        .header("X-Moondream-Auth", "YOUR_API_KEY")
+        .post(body)
+        .build()
+    
+    client.newCall(request).execute().use { response ->
+        if (response.isSuccessful) {
+            val responseJson = JSONObject(responseBody)
+            val answer = responseJson.getString("answer")
+            cleanScrapingResponse(answer, description)
+        } else {
+            "API error: ${response.code}"
+        }
+    }
+}
+```
+
+## Magic Functions
+
+### magicClicker(description)
+
+Finds and clicks UI elements using natural language:
+
+```kotlin
+@JavascriptInterface
+fun magicClicker(description: String) {
+    mainScope.launch {
+        try {
+            speakText("Looking for $description on screen")
+            
+            // 1. Capture screenshot
+            val screenshot = takeScreenshotForAPI()
+            if (screenshot == null) {
+                speakText("No screenshot available")
+                return@launch
+            }
+            
+            // 2. Encode to base64
+            val base64Image = bitmapToBase64(screenshot)
+            
+            // 3. Call Moondream API
+            val coordinates = callMoondreamAPI(base64Image, description)
+            
+            if (coordinates != null) {
+                // 4. Convert normalized coords to pixels
+                val pixelX = (coordinates.x * 720).toFloat() + 50f
+                val pixelY = (coordinates.y * 1600).toFloat()
+                
+                // 5. Simulate click
+                withContext(Dispatchers.Main) {
+                    MyAccessibilityService.instance?.simulateClick(pixelX, pixelY)
+                    speakText("Clicked on $description")
+                }
+                
+                // 6. Log for tracking
+                trackMagicRun(
+                    "magicClicker", 
+                    description,
+                    "{\"x\": ${pixelX.toInt()}, \"y\": ${pixelY.toInt()}}"
+                )
+            } else {
+                speakText("Could not find $description on screen")
+            }
+        } catch (e: Exception) {
+            speakText("Error with magic click: ${e.message}")
+        }
+    }
+}
+```
+
+**JavaScript Usage:**
+
+```javascript
+// Natural language element targeting
+magicClicker("login button");
+magicClicker("profile icon in top right corner");
+magicClicker("red heart icon");
+magicClicker("first video thumbnail");
+
+// Works with icons that have no text
+magicClicker("hamburger menu");
+magicClicker("settings gear icon");
+```
+
+<Warning>
+  **Coordinate Offset:** PhoneClaw adds a 50px X-offset to account for UI chrome. Adjust `pixelX` calculation if clicks are consistently off-target.
+</Warning>
+
+### magicScraper(description)
+
+Extracts text information from the screen:
+
+```kotlin
+@JavascriptInterface
+fun magicScraper(description: String): String {
+    return try {
+        runBlocking(Dispatchers.IO) {
+            withTimeout(30000) {
+                val screenshot = takeScreenshotForAPI()
+                    ?: return@withTimeout "Error: No screenshot"
+                
+                val base64Image = bitmapToBase64(screenshot)
+                val result = callStreamingAPIWithImage(base64Image, description)
+                
+                trackMagicRun("magicScraper", description, result)
+                result
+            }
+        }
+    } catch (e: Exception) {
+        "Error: ${e.message}"
+    }
+}
+```
+
+**JavaScript Usage:**
+
+```javascript
+// Extract specific information
+const username = magicScraper("current username displayed");
+const followerCount = magicScraper("number of followers");
+const batteryLevel = magicScraper("battery percentage in status bar");
+const time = magicScraper("current time shown at top");
+
+// Use scraped data
+if (parseInt(followerCount) > 10000) {
+    speakText(`Wow, ${followerCount} followers!`);
+}
+```
+
+## Data Models
+
+### MoondreamPoint
+
+```kotlin
+data class MoondreamPoint(
+    val x: Double,  // Normalized X coordinate (0.0 - 1.0)
+    val y: Double   // Normalized Y coordinate (0.0 - 1.0)
+)
+```
+
+### MoondreamResponse
+
+```kotlin
+data class MoondreamResponse(
+    val request_id: String,
+    val points: List<MoondreamPoint>
+)
+```
+
+## Response Cleaning
+
+Moondream responses are cleaned to extract concise information:
+
+```kotlin
+private fun cleanScrapingResponse(answer: String, originalDescription: String): String {
+    var cleaned = answer.trim()
+    
+    // Remove common AI prefixes
+    val prefixesToRemove = listOf(
+        "The ",
+        "I can see ",
+        "Looking at the image, ",
+        "In the image, ",
+        "The screen shows "
+    )
+    
+    for (prefix in prefixesToRemove) {
+        if (cleaned.startsWith(prefix, ignoreCase = true)) {
+            cleaned = cleaned.substring(prefix.length)
+            break
+        }
+    }
+    
+    // Extract specific patterns
+    cleaned = when {
+        originalDescription.lowercase().contains("battery") -> {
+            val percentageRegex = Regex("(\\d+)%")
+            percentageRegex.find(cleaned)?.value ?: cleaned
+        }
+        
+        originalDescription.lowercase().contains("time") -> {
+            val timeRegex = Regex("\\d{1,2}:\\d{2}\\s*(AM|PM|am|pm)?")
+            timeRegex.find(cleaned)?.value ?: cleaned
+        }
+        
+        else -> cleaned
+    }
+    
+    return if (cleaned.isNotEmpty()) cleaned else "Not found"
+}
+```
+
+## Advanced Usage
+
+### Sequential Automation
+
+```javascript
+// Multi-step process using vision
+magicClicker("search icon");
+delay(2000);
+
+simulateTypeInFirstEditableField("#automation");
+delay(1000);
+
+magicClicker("search button");
+delay(3000);
+
+// Scrape results
+const resultCount = magicScraper("number of results shown");
+speakText(`Found ${resultCount} results`);
+
+magicClicker("first result");
+```
+
+### Conditional Actions Based on Vision
+
+```javascript
+const isLoggedIn = magicScraper("is user logged in?");
+
+if (isLoggedIn.toLowerCase().includes("no")) {
+    magicClicker("login button");
+    delay(2000);
+    
+    simulateTypeInFirstEditableField("user@example.com");
+    simulateTypeInSecondEditableField("password123");
+    
+    magicClicker("submit");
+} else {
+    speakText("Already logged in, continuing...");
+}
+```
+
+### Verification Loops
+
+```javascript
+magicClicker("post button");
+delay(2000);
+
+// Verify action completed
+let attempts = 0;
+while (attempts < 5) {
+    const status = magicScraper("is post published?");
+    
+    if (status.toLowerCase().includes("yes")) {
+        speakText("Post published successfully!");
+        break;
+    }
+    
+    delay(2000);
+    attempts++;
+}
+```
+
+## Performance Optimization
+
+### Image Compression
+
+```kotlin
+// Compress to JPEG with 85% quality for faster uploads
+bitmap.compress(Bitmap.CompressFormat.JPEG, 85, byteArrayOutputStream)
+```
+
+<Note>
+  85% JPEG quality provides a good balance between file size (~100-200KB) and vision model accuracy.
+</Note>
+
+### Bitmap Memory Management
+
+```kotlin
+private fun cleanupBitmap(bitmap: Bitmap?) {
+    bitmap?.let {
+        if (!it.isRecycled) {
+            try {
+                it.recycle()
+                Log.d("Memory", "Bitmap recycled successfully")
+            } catch (e: Exception) {
+                Log.e("Memory", "Error recycling bitmap: ${e.message}")
+            }
+        }
+    }
+}
+```
+
+### Timeout Handling
+
+```kotlin
+runBlocking(Dispatchers.IO) {
+    withTimeout(30000) { // 30 second timeout
+        val result = callMoondreamAPI(base64Image, description)
+        // ...
+    }
+}
+```
+
+## Tracking & Analytics
+
+PhoneClaw logs all vision-based interactions for debugging:
+
+```kotlin
+private suspend fun trackMagicRun(
+    mode: String,
+    inputDescription: String,
+    output: String
+) = withContext(Dispatchers.IO) {
+    val database = Firebase.database
+    var index = magicRunIndex++
+    
+    val data = mapOf(
+        "input_description" to inputDescription,
+        "output" to output,
+        "mode" to mode,
+        "index" to index,
+        "timestamp" to System.currentTimeMillis(),
+        "device_id" to phoneDeviceId
+    )
+    
+    database.getReference("unit_tests")
+        .child(phoneDeviceId)
+        .child(index.toString())
+        .setValue(data)
+        .await()
+}
+```
+
+## Error Handling
+
+### API Failures
+
+```javascript
+try {
+    magicClicker("submit button");
+} catch (error) {
+    // Fallback to coordinate click if vision fails
+    simulateClick(360, 1200);
+}
+```
+
+### No Screenshot Available
+
+```kotlin
+if (ScreenCaptureService.lastCapturedPng == null) {
+    speakText("Please ensure screen capture is running");
+    val intent = Intent(this, ScreenshotActivity::class.java)
+    startActivity(intent)
+}
+```
+
+## Limitations
+
+<Warning>
+  **Known Limitations:**
+  
+  - Requires active screen capture service
+  - 30-second timeout per API call
+  - May struggle with very small UI elements (less than 20px)
+  - Performance depends on network latency
+  - Costs ~$0.01 per 100 API calls (Moondream pricing)
+</Warning>
+
+## Best Practices
+
+<Accordion title="Descriptive Queries">
+  Be specific and descriptive in your element descriptions:
+  
+  ✅ Good:
+  - "red heart icon in bottom right corner"
+  - "blue login button at center of screen"
+  - "profile picture next to username"
+  
+  ❌ Bad:
+  - "button" (too generic)
+  - "thing" (not descriptive)
+  - "icon" (too vague)
+</Accordion>
+
+<Accordion title="Fallback Strategies">
+  Always have a backup plan if vision fails:
+  
+  ```javascript
+  function reliableClick(description, fallbackX, fallbackY) {
+      try {
+          magicClicker(description);
+      } catch (e) {
+          speakText("Vision click failed, using coordinates");
+          simulateClick(fallbackX, fallbackY);
+      }
+  }
+  ```
+</Accordion>
+
+<Accordion title="Add Delays">
+  Give the UI time to update between actions:
+  
+  ```javascript
+  magicClicker("next button");
+  delay(2000);  // Wait for navigation animation
+  magicClicker("submit");
+  ```
+</Accordion>
+
+## API Configuration
+
+### Authentication
+
+Add your Moondream API key to `build.gradle.kts`:
+
+```kotlin
+val moondreamAuth = (project.findProperty("MOONDREAM_AUTH") as String?)
+    ?.replace("\"", "\\\"")
+    ?: ""
+buildConfigField("String", "MOONDREAM_AUTH", "\"$moondreamAuth\"")
+```
+
+In `gradle.properties`:
+```properties
+MOONDREAM_AUTH=your_api_key_here
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="ClawScript API" icon="code" href="/concepts/clawscript">
+    Complete JavaScript function reference
+  </Card>
+  <Card title="Scheduling" icon="clock" href="/concepts/scheduling">
+    Automate vision-based tasks on a schedule
+  </Card>
+</CardGroup>

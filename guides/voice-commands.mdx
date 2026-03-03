@@ -1,0 +1,451 @@
+---
+title: "Using Voice Commands"
+description: "Generate PhoneClaw automation scripts naturally using voice commands and AI-powered code generation"
+---
+
+## Overview
+
+PhoneClaw's voice interface lets you create automation workflows by simply describing what you want to accomplish. The system uses speech recognition and AI to generate ClawScript code automatically.
+
+<Note>
+Voice generation is the fastest way to create automations. Just say "open Twitter and post a tweet every hour" and PhoneClaw generates the complete script with scheduling.
+</Note>
+
+## How Voice Generation Works
+
+1. You speak a natural language command
+2. PhoneClaw transcribes your speech
+3. An AI agent analyzes your request
+4. ClawScript code is generated automatically
+5. The script is saved and ready to run or schedule
+
+## Setting Up Voice Commands
+
+<Steps>
+
+### Grant Microphone Permission
+
+When you first launch PhoneClaw:
+
+1. Tap the **microphone button** at the bottom of the screen
+2. Android will prompt for microphone permission
+3. Tap **Allow** to enable voice input
+
+<Tip>
+If you accidentally denied permission, go to Settings → Apps → PhoneClaw → Permissions → Microphone and enable it.
+</Tip>
+
+### Start Voice Input
+
+PhoneClaw uses **push-to-talk** for voice commands:
+
+1. Tap the **🎤 Tap to Speak** button
+2. Button turns red with "🔴 Listening..."
+3. Speak your automation command clearly
+4. Release or tap again to stop recording
+
+### View Generated Scripts
+
+After speaking:
+
+1. PhoneClaw processes your command
+2. Generated code appears in the **Generation History** tab
+3. You can review, edit, or run the script immediately
+4. Scripts are automatically saved with timestamps
+
+</Steps>
+
+## Voice Command Examples
+
+### Simple Automation
+
+Generate a basic automation workflow:
+
+<CodeGroup>
+```text Voice Command
+"Open Twitter and click the blue post button"
+```
+
+```javascript Generated Script
+speakText("Opening Twitter")
+delay(2000)
+
+magicClicker("Blue post button")
+delay(1500)
+
+speakText("Clicked post button")
+```
+</CodeGroup>
+
+### Scheduled Task
+
+Create an automation that runs on a schedule:
+
+<CodeGroup>
+```text Voice Command
+"Open Twitter and click the blue post button every hour"
+```
+
+```javascript Generated Script
+const automateTwitterPost = () => {
+  speakText("Running scheduled Twitter automation")
+  
+  magicClicker("Blue post button")
+  delay(2000)
+  
+  speakText("Post button clicked")
+}
+
+// Schedule to run every hour
+schedule("automateTwitterPost", "0 * * * *")
+speakText("Scheduled to post every hour")
+```
+</CodeGroup>
+
+<Note>
+When you say "every hour," "daily," or "every Monday," PhoneClaw automatically generates the correct cron expression and schedules the task.
+</Note>
+
+### Multi-Step Workflow
+
+Generate complex workflows with multiple steps:
+
+<CodeGroup>
+```text Voice Command
+"Open Instagram, upload a photo from gallery, add the caption 'Hello World', and post it"
+```
+
+```javascript Generated Script
+speakText("Starting Instagram upload workflow")
+
+// Open Instagram
+delay(1000)
+
+// Click the create post button
+magicClicker("Plus icon to create post")
+delay(2000)
+
+// Select from gallery
+magicClicker("Gallery or photo library")
+delay(1500)
+
+// Choose first photo
+magicClicker("First photo in gallery")
+delay(1000)
+
+// Continue to next step
+magicClicker("Next button in top right")
+delay(2000)
+
+// Add caption
+magicClicker("Write a caption field")
+delay(500)
+// Type: Hello World
+
+// Post the image
+magicClicker("Share or post button")
+delay(2000)
+
+speakText("Instagram post created successfully")
+```
+</CodeGroup>
+
+### Conditional Logic
+
+Generate scripts with branching:
+
+<CodeGroup>
+```text Voice Command
+"Check my notifications and if there's a new message, open it and reply"
+```
+
+```javascript Generated Script
+speakText("Checking notifications")
+
+// Open notifications
+magicClicker("Notifications icon")
+delay(2000)
+
+// Check for new messages
+const hasNew = magicScraper("Are there any unread message notifications?")
+
+if (hasNew.toLowerCase().includes("yes")) {
+  speakText("New message found, opening")
+  
+  magicClicker("First unread message")
+  delay(2000)
+  
+  magicClicker("Reply button")
+  delay(1000)
+  
+  speakText("Reply screen opened")
+} else {
+  speakText("No new messages")
+}
+```
+</CodeGroup>
+
+## Voice Command Patterns
+
+### Action Verbs
+
+Start commands with clear action verbs:
+
+- **"Open"** - Launch apps or navigate
+- **"Click"** - Tap buttons or elements
+- **"Type"** - Enter text in fields
+- **"Upload"** - Select files/photos
+- **"Check"** - Read or verify content
+- **"Wait"** - Add delays
+
+### Location Descriptors
+
+Include position information:
+
+- "in the top right corner"
+- "at the bottom of the screen"
+- "in the navigation bar"
+- "below the title"
+- "next to the profile picture"
+
+### Visual Characteristics
+
+Describe what elements look like:
+
+- "the blue send button"
+- "the red notification badge"
+- "the plus icon"
+- "the heart-shaped like button"
+- "the three-dot menu"
+
+### Timing Keywords
+
+Specify when to run:
+
+- **"every hour"** → `0 * * * *`
+- **"every day at 9am"** → `0 9 * * *`
+- **"every Monday"** → `0 0 * * 1`
+- **"every 30 minutes"** → `*/30 * * * *`
+- **"once a week"** → `0 0 * * 0`
+
+<Tip>
+You don't need to know cron syntax! Just use natural language timing and PhoneClaw generates the correct schedule.
+</Tip>
+
+## Advanced Voice Commands
+
+### Multi-App Workflows
+
+```text
+"Open Twitter, copy the first tweet, then open Instagram and paste it as a new post"
+```
+
+Generates a script that:
+- Switches between Twitter and Instagram
+- Extracts content from one app
+- Inputs it into another
+- Handles timing between app switches
+
+### Loop Operations
+
+```text
+"Like the first 10 posts on Instagram"
+```
+
+Generates a script with:
+- A loop that runs 10 times
+- Click action for the like button
+- Scroll action to next post
+- Delays between actions
+
+### Data Extraction
+
+```text
+"Read all the notification messages and speak them aloud"
+```
+
+Generates a script that:
+- Opens notifications
+- Uses `magicScraper` to extract text
+- Iterates through multiple notifications
+- Speaks each one with `speakText`
+
+## Editing Generated Scripts
+
+Voice-generated scripts can be edited:
+
+<Steps>
+
+### View the Script
+
+1. Go to the **Generation History** tab
+2. Find your recently generated script
+3. Tap to view the full code
+
+### Make Adjustments
+
+Common edits:
+
+```javascript
+// Increase delays if actions are too fast
+delay(1000) → delay(2000)
+
+// Make descriptions more specific
+magicClicker("Button") → magicClicker("Blue send button in bottom right")
+
+// Add error handling
+try {
+  magicClicker("Submit button")
+} catch (error) {
+  speakText("Error clicking button")
+}
+
+// Add confirmation checks
+const result = magicScraper("Did the action succeed?")
+if (result.includes("success")) {
+  speakText("Action completed")
+}
+```
+
+### Re-generate If Needed
+
+If the script isn't quite right:
+
+1. Tap the microphone again
+2. Rephrase your command with more detail
+3. Compare the new generated version
+4. Use the version that works best
+
+</Steps>
+
+## Troubleshooting Voice Commands
+
+### Command Not Recognized
+
+- Speak clearly and at a moderate pace
+- Use shorter, simpler sentences
+- Avoid background noise
+- Try rephrasing with more common words
+
+### Wrong Script Generated
+
+- Be more specific about element descriptions
+- Include visual details (color, shape, icon)
+- Specify exact locations (top, bottom, left, right)
+- Break complex commands into smaller ones
+
+### Microphone Button Not Working
+
+- Check microphone permission in Settings
+- Restart PhoneClaw app
+- Test with another voice app to verify microphone works
+- Ensure device volume is not muted
+
+### Generated Code Has Errors
+
+- View the Generation History to see exact code
+- Edit the script manually to fix issues
+- Test commands individually before combining
+- Check logs for specific error messages
+
+## Best Practices
+
+### Be Specific
+
+<CodeGroup>
+```text ❌ Too Vague
+"Click the button"
+```
+
+```text ✅ Specific
+"Click the blue send button in the bottom right corner"
+```
+</CodeGroup>
+
+### Use Natural Language
+
+<CodeGroup>
+```text ❌ Too Technical
+"Execute magicClicker function on element with class button-submit"
+```
+
+```text ✅ Natural
+"Click the submit button"
+```
+</CodeGroup>
+
+### Include Timing
+
+<CodeGroup>
+```text ❌ Missing Schedule
+"Post to Twitter"
+```
+
+```text ✅ With Schedule
+"Post to Twitter every day at 10am"
+```
+</CodeGroup>
+
+### Break Down Complex Tasks
+
+Instead of:
+```text
+"Open Instagram, upload 5 photos from gallery with captions, add hashtags, tag locations, and post them all"
+```
+
+Try:
+```text
+"Open Instagram and start a new post"
+```
+Then:
+```text
+"Select a photo from gallery and add the caption with hashtags"
+```
+Then:
+```text
+"Post the image"
+```
+
+## Real-World Examples
+
+Here are commands from actual PhoneClaw demos:
+
+### TikTok Video Upload
+```text
+"Open TikTok, upload a video from gallery, add the song 'Popular Track', 
+and post it with the caption 'Check this out'"
+```
+
+### Email 2FA Code Extraction
+```text
+"Open Gmail, find the verification code in the latest email, 
+and read it aloud"
+```
+
+### Captcha Solving
+```text
+"Look at the captcha image and tell me what text is shown"
+```
+
+### Waymo Twitter Automation
+```text
+"Post a tweet saying 'Riding in a Waymo' every 30 minutes"
+```
+
+<Note>
+These examples are from actual PhoneClaw demo videos showing real-world automation scenarios.
+</Note>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Schedule Your Automations" href="/guides/scheduling-tasks" icon="clock">
+    Learn cron expressions and recurring tasks
+  </Card>
+  <Card title="Multi-App Workflows" href="/guides/multi-app-workflows" icon="grid">
+    Chain actions across multiple apps
+  </Card>
+  <Card title="ClawScript Reference" href="/api-reference/clawscript-functions" icon="book">
+    See all available functions
+  </Card>
+</CardGroup>

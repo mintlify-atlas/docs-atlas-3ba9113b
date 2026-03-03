@@ -1,0 +1,131 @@
+---
+title: API Keys Setup
+description: Configure Moondream authentication and other API keys required for PhoneClaw
+---
+
+PhoneClaw requires several API keys to function properly. This guide walks you through setting up the necessary authentication tokens.
+
+## Moondream Authentication
+
+PhoneClaw uses the Moondream API for visual AI capabilities, including screen element detection and image analysis.
+
+### Getting Your Moondream Auth Token
+
+1. Sign up for a Moondream API account at [Moondream](https://moondream.ai)
+2. Navigate to your API dashboard
+3. Copy your authentication token
+
+### Setting Up MOONDREAM_AUTH
+
+You need to add your Moondream authentication token to your project's Gradle properties.
+
+<Note>
+The `MOONDREAM_AUTH` token is required for PhoneClaw's visual AI features to work. Without it, screen element detection will fail.
+</Note>
+
+#### Option 1: Using local.properties (Recommended)
+
+Create or edit `local.properties` in your project root:
+
+```properties
+MOONDREAM_AUTH=your_moondream_auth_token_here
+```
+
+<Warning>
+Never commit `local.properties` to version control. This file should remain local to your development machine.
+</Warning>
+
+#### Option 2: Using gradle.properties
+
+Alternatively, add it to `gradle.properties`:
+
+```properties
+MOONDREAM_AUTH=your_moondream_auth_token_here
+```
+
+### How It Works
+
+The `MOONDREAM_AUTH` token is loaded during the build process in `app/build.gradle.kts:20-23`:
+
+```kotlin
+val moondreamAuth = (project.findProperty("MOONDREAM_AUTH") as String?)
+    ?.replace("\"", "\\\"")
+    ?: ""
+buildConfigField("String", "MOONDREAM_AUTH", "\"$moondreamAuth\"")
+```
+
+This makes the token available at runtime via `BuildConfig.MOONDREAM_AUTH`.
+
+## OpenRouter API Key
+
+PhoneClaw uses OpenRouter for AI model access. While the model selection is configurable in the app, you may need an OpenRouter API key for premium models.
+
+### Setting Up OpenRouter
+
+1. Create an account at [OpenRouter](https://openrouter.ai)
+2. Generate an API key from your dashboard
+3. Configure it in your environment or directly in the app
+
+<Note>
+Some models like "Llama 4 Maverick (Free)" don't require payment, but you still need an OpenRouter account.
+</Note>
+
+## Firebase Configuration (Optional)
+
+Firebase is optional but provides cloud features like remote debugging and device management.
+
+Firebase can be configured following the Android Studio Firebase setup wizard.
+
+## Verifying Your Configuration
+
+After setting up your API keys:
+
+1. Clean and rebuild your project:
+   ```bash
+   ./gradlew clean build
+   ```
+
+2. Check the build output for any configuration warnings
+
+3. Launch the app - it should initialize without authentication errors
+
+## Troubleshooting
+
+### Build Errors Related to MOONDREAM_AUTH
+
+If you see build errors about missing `MOONDREAM_AUTH`:
+
+1. Verify the property is set in `local.properties` or `gradle.properties`
+2. Ensure there are no extra spaces or quotes around the token
+3. Try a clean rebuild: `./gradlew clean build`
+
+### Token Not Working
+
+- Verify your Moondream token is still valid
+- Check that the token was copied correctly without any trailing whitespace
+- Ensure your Moondream account has sufficient API credits
+
+## Security Best Practices
+
+<Warning>
+**Never commit API keys to version control!**
+
+Add these lines to your `.gitignore`:
+
+```gitignore
+local.properties
+app/google-services.json
+*.env
+```
+</Warning>
+
+- Use `local.properties` for sensitive credentials
+- Rotate your API keys periodically
+- Never share your authentication tokens
+- Consider using environment variables in CI/CD pipelines
+
+## Next Steps
+
+- [Configure OpenRouter Models](/configuration/models)
+- [Set Up Android Permissions](/configuration/permissions)
+- [Setup Device Guide](/guides/setup-device)

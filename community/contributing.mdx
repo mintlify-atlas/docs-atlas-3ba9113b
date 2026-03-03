@@ -1,0 +1,239 @@
+---
+title: "Contributing to PhoneClaw"
+description: "Learn how to contribute code, documentation, and automation examples to PhoneClaw"
+---
+
+## How to Contribute
+
+PhoneClaw is an open-source project, and we welcome contributions from the community. Whether you're fixing bugs, adding features, improving documentation, or sharing automation examples, your contributions help make PhoneClaw better for everyone.
+
+## Ways to Contribute
+
+<CardGroup cols={2}>
+  <Card title="Report Bugs" icon="bug">
+    Found a bug? Report it on GitHub Issues with detailed reproduction steps.
+  </Card>
+  <Card title="Submit Code" icon="code">
+    Fix bugs, add features, or improve performance by submitting pull requests.
+  </Card>
+  <Card title="Improve Docs" icon="book">
+    Help make our documentation clearer, more comprehensive, and easier to follow.
+  </Card>
+  <Card title="Share Scripts" icon="file-code">
+    Contribute ClawScript examples and automation workflows to the community.
+  </Card>
+</CardGroup>
+
+## Getting Started
+
+<Steps>
+  <Step title="Fork the Repository">
+    Visit the [PhoneClaw GitHub repository](https://github.com/rohanarun/phoneclaw) and fork it to your account.
+  </Step>
+  <Step title="Set Up Development Environment">
+    Clone your fork and follow the setup instructions in the README to get PhoneClaw running locally.
+    
+    ```bash
+    git clone https://github.com/YOUR_USERNAME/phoneclaw.git
+    cd phoneclaw
+    ```
+  </Step>
+  <Step title="Create a Branch">
+    Create a new branch for your changes with a descriptive name.
+    
+    ```bash
+    git checkout -b feature/your-feature-name
+    ```
+  </Step>
+  <Step title="Make Your Changes">
+    Implement your bug fix, feature, or improvement. Follow the coding standards and test your changes.
+  </Step>
+  <Step title="Submit a Pull Request">
+    Push your changes to your fork and submit a pull request to the main repository with a clear description.
+  </Step>
+</Steps>
+
+## Development Setup
+
+### Prerequisites
+
+- Android Studio (latest version recommended)
+- Android device or emulator with Android 7.0 (API 24) or higher
+- Java Development Kit (JDK) 11 or higher
+- Git for version control
+
+### Building the Project
+
+1. Open the project in Android Studio
+2. Let Gradle sync and download dependencies
+3. Configure your API keys in `local.properties`:
+
+```properties
+MOONDREAM_AUTH=YOUR_TOKEN_HERE
+```
+
+4. Build the APK:
+   - Go to **Build** > **Generate Bundles/APKs** > **Generate APKs**
+   - Or run: `./gradlew assembleDebug`
+
+### Testing Your Changes
+
+- Test on a real Android device when possible (emulators have limitations with Accessibility services)
+- Verify that existing automations still work after your changes
+- Test edge cases and error handling
+- Check that the UI remains responsive
+
+## Coding Standards
+
+### Code Style
+
+- Follow Kotlin coding conventions for Android code
+- Use meaningful variable and function names
+- Add comments for complex logic
+- Keep functions focused and concise
+
+### ClawScript Examples
+
+- Include clear comments explaining what the script does
+- Add error handling where appropriate
+- Test scripts on multiple devices/screen sizes when possible
+- Document any app-specific requirements
+
+### Commit Messages
+
+- Use clear, descriptive commit messages
+- Start with a verb (Add, Fix, Update, Remove)
+- Keep the first line under 50 characters
+- Add details in the commit body if needed
+
+```bash
+Add voice command for scheduling tasks
+
+Implements new voice recognition for cron-based scheduling.
+Includes error handling for invalid cron expressions.
+```
+
+## Contributing Documentation
+
+Documentation improvements are always welcome! You can:
+
+- Fix typos or unclear explanations
+- Add missing information or examples
+- Create new guides for common use cases
+- Improve code samples and API documentation
+
+Documentation files are in the `/docs` directory and use MDX format.
+
+## Sharing Automation Scripts
+
+### Script Library Contributions
+
+We encourage you to share your ClawScript automations with the community:
+
+1. Create a new file in the examples directory
+2. Include a clear description of what the script does
+3. Document any requirements (specific apps, permissions, API keys)
+4. Add usage instructions and expected behavior
+5. Include error handling and edge cases
+
+### Script Template
+
+```javascript
+/**
+ * Script Name: Descriptive Name
+ * Description: What this script does
+ * Requirements: Any specific apps, permissions, or setup needed
+ * Author: Your name (optional)
+ */
+
+// Configuration
+const CONFIG = {
+  delay: 2000,
+  maxRetries: 3
+};
+
+// Main automation logic
+async function runAutomation() {
+  try {
+    speakText("Starting automation");
+    
+    // Your automation steps here
+    await magicClicker("Target element");
+    await delay(CONFIG.delay);
+    
+    speakText("Automation completed");
+  } catch (error) {
+    speakText("Error occurred: " + error);
+  }
+}
+
+runAutomation();
+```
+
+## Pull Request Guidelines
+
+<Accordion title="Before Submitting">
+  - Test your changes thoroughly on a real device
+  - Update documentation if you've changed functionality
+  - Add or update tests if applicable
+  - Ensure your code follows the project's style guidelines
+  - Rebase your branch on the latest main branch
+</Accordion>
+
+<Accordion title="PR Description">
+  Include in your pull request description:
+  - What changes you made and why
+  - How to test the changes
+  - Any breaking changes or migration steps
+  - Screenshots or videos for UI changes
+  - Related issue numbers (if applicable)
+</Accordion>
+
+<Accordion title="Review Process">
+  - Maintainers will review your PR and may request changes
+  - Address feedback and update your PR as needed
+  - Once approved, your PR will be merged
+  - Your contribution will be included in the next release
+</Accordion>
+
+## Code of Conduct
+
+### Our Standards
+
+- Be welcoming and inclusive to contributors of all backgrounds
+- Respect differing viewpoints and experiences
+- Accept constructive criticism gracefully
+- Focus on what is best for the community and project
+- Show empathy towards other community members
+
+### Unacceptable Behavior
+
+- Harassment, discriminatory language, or personal attacks
+- Trolling, insulting comments, or political discussions
+- Publishing others' private information without permission
+- Any conduct that could be considered inappropriate in a professional setting
+
+## Getting Help
+
+Need help with your contribution?
+
+<CardGroup cols={2}>
+  <Card
+    title="Discord Support"
+    icon="discord"
+    href="https://discord.gg/n9nbZUrw"
+  >
+    Ask questions in our Discord community
+  </Card>
+  <Card
+    title="GitHub Issues"
+    icon="github"
+    href="https://github.com/rohanarun/phoneclaw/issues"
+  >
+    Check existing issues or create a new one
+  </Card>
+</CardGroup>
+
+## Recognition
+
+All contributors are recognized in our release notes and README. Thank you for making PhoneClaw better!

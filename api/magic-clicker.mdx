@@ -1,0 +1,189 @@
+---
+title: "magicClicker"
+description: "Click UI elements using natural language descriptions with vision-based AI"
+---
+
+## Overview
+
+`magicClicker()` is a powerful vision-based automation function that allows you to click on UI elements by describing them in natural language. It uses the Moondream API to analyze screenshots and locate elements on screen.
+
+## Function Signature
+
+```kotlin
+fun magicClicker(description: String)
+```
+
+## Parameters
+
+<ParamField path="description" type="String" required>
+  Natural language description of the UI element you want to click. Be specific about the element's appearance and location.
+  
+  **Examples:**
+  - "Profile button in bottom right corner"
+  - "Search icon at the top"
+  - "Red notification bell"
+  - "Submit button"
+</ParamField>
+
+## How It Works
+
+1. **Screenshot Capture**: Takes a screenshot of the current screen using the ScreenCaptureService
+2. **Image Processing**: Converts the screenshot to base64-encoded JPEG format
+3. **Vision AI Analysis**: Sends the image and description to Moondream API's `/v1/point` endpoint
+4. **Coordinate Detection**: Receives normalized coordinates (x, y) of the target element
+5. **Click Execution**: Converts normalized coordinates to pixel coordinates and performs the click using AccessibilityService
+
+## Code Examples
+
+### Basic Usage
+
+```javascript
+// Click on a specific button
+Android.magicClicker("Login button");
+
+// Click on an icon in a specific location
+Android.magicClicker("Settings gear icon in top right");
+
+// Click on a colored element
+Android.magicClicker("Blue plus button at the bottom");
+```
+
+### Real-World Examples
+
+```javascript
+// Navigate to profile
+Android.magicClicker("Profile button in bottom right corner");
+delay(2000);
+
+// Open notifications
+Android.magicClicker("Notification bell icon");
+delay(1500);
+
+// Submit a form
+Android.magicClicker("Green submit button");
+```
+
+### Email Automation Example
+
+```javascript
+// Open Gmail and compose
+Android.launchGmail();
+delay(3000);
+
+Android.magicClicker("Compose button in the bottom right corner");
+delay(2000);
+
+// Use with other functions to complete the task
+Android.simulateTypeInSecondEditableField("user@example.com");
+```
+
+## Vision API Details
+
+### Moondream API Integration
+
+The function uses Moondream's point detection API:
+
+**Endpoint**: `https://api.moondream.ai/v1/point`
+
+**Request Format**:
+```json
+{
+  "image_url": "data:image/jpeg;base64,<base64_image>",
+  "object": "<your_description>"
+}
+```
+
+**Response Format**:
+```json
+{
+  "request_id": "abc-123",
+  "points": [
+    {
+      "x": 0.75,
+      "y": 0.85
+    }
+  ]
+}
+```
+
+### Coordinate Transformation
+
+The API returns normalized coordinates (0.0 to 1.0). These are converted to screen pixels:
+
+```kotlin
+val pixelX = (coordinates.x * 720).toFloat() + 50f
+val pixelY = (coordinates.y * 1600).toFloat()
+```
+
+**Note**: The values 720 and 1600 are based on the device screen dimensions.
+
+## Best Practices
+
+<Tip>
+  **Be Specific**: Include position hints like "top left", "bottom right", or "in the center" for better accuracy.
+</Tip>
+
+<Warning>
+  **Wait for UI**: Ensure the target element is visible on screen before calling `magicClicker()`. Use `delay()` after navigation or animations.
+</Warning>
+
+### Writing Good Descriptions
+
+**Good descriptions:**
+- "Blue send button in bottom right"
+- "Profile icon with circular avatar"
+- "Red close X button at top"
+
+**Poor descriptions:**
+- "button" (too vague)
+- "the thing" (not descriptive)
+- "click here" (no visual information)
+
+## Error Handling
+
+The function includes built-in error handling:
+
+- **No Screenshot Available**: Returns early with voice feedback
+- **Element Not Found**: Moondream returns null, user is notified via speech
+- **Activity Destroyed**: Safely exits if the activity is no longer active
+- **API Errors**: Logged to console with error messages
+
+```kotlin
+if (coordinates != null) {
+    // Click performed successfully
+    speakText("Clicked on $description")
+} else {
+    speakText("Could not find $description on screen")
+}
+```
+
+## Performance Considerations
+
+- **Asynchronous Execution**: Runs in a coroutine to avoid blocking the UI thread
+- **Image Compression**: Screenshots are compressed to 85% JPEG quality for faster transmission
+- **Timeout**: Network requests have 30-second timeout limits
+- **Memory Management**: Bitmaps are properly recycled after use
+
+## Tracking and Analytics
+
+Each magic click is tracked to Firebase for analytics:
+
+```kotlin
+trackMagicRun(
+    "magicClicker", 
+    description,
+    "{\"x\": ${pixelX.toInt()}, \"y\": ${pixelY.toInt()}}"
+)
+```
+
+## Related Functions
+
+- [`magicScraper()`](/api/magic-scraper) - Extract text/data from screen using natural language
+- `simulateClick()` - Direct coordinate-based clicking without vision AI
+- `launchGmail()` - Launch specific apps before using magicClicker
+
+## See Also
+
+- [First Automation Guide](/guides/first-automation)
+- [Setup Device Guide](/guides/setup-device)
+- [Moondream API Documentation](https://docs.moondream.ai)

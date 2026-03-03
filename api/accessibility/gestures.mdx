@@ -1,0 +1,527 @@
+---
+title: 'Gestures'
+description: 'Methods for simulating taps, swipes, and scrolling gestures'
+---
+
+## Overview
+
+Gesture methods allow you to simulate touch interactions at specific screen coordinates. These methods use Android's `GestureDescription` API to dispatch touch events.
+
+<Warning>
+  Gesture methods require API 24 (Android 7.0) or higher. The methods will log a warning and return early on older Android versions.
+</Warning>
+
+## Tap Gestures
+
+### Simulate Click
+
+Simulate a tap at specific screen coordinates.
+
+```kotlin
+fun simulateClick(x: Float, y: Float)
+```
+
+<ParamField path="x" type="Float" required>
+  The X coordinate in pixels (horizontal position from left edge)
+</ParamField>
+
+<ParamField path="y" type="Float" required>
+  The Y coordinate in pixels (vertical position from top edge)
+</ParamField>
+
+**Example:**
+```kotlin
+val service = MyAccessibilityService.instance
+
+// Tap at position (500, 800)
+service?.simulateClick(500f, 800f)
+
+// Tap at center of screen (assuming 1080x1920 resolution)
+service?.simulateClick(540f, 960f)
+```
+
+<Info>
+  The tap gesture has a 50ms duration. This simulates a quick tap that most apps will recognize as a click event.
+</Info>
+
+---
+
+## Swipe Gestures
+
+### Simulate Swipe
+
+Simulate a swipe gesture from one point to another.
+
+```kotlin
+fun simulateSwipe(startX: Float, startY: Float, endX: Float, endY: Float)
+```
+
+<ParamField path="startX" type="Float" required>
+  The starting X coordinate in pixels
+</ParamField>
+
+<ParamField path="startY" type="Float" required>
+  The starting Y coordinate in pixels
+</ParamField>
+
+<ParamField path="endX" type="Float" required>
+  The ending X coordinate in pixels
+</ParamField>
+
+<ParamField path="endY" type="Float" required>
+  The ending Y coordinate in pixels
+</ParamField>
+
+**Example:**
+```kotlin
+val service = MyAccessibilityService.instance
+
+// Swipe from bottom to top (scroll down)
+service?.simulateSwipe(
+    startX = 500f,
+    startY = 1500f,
+    endX = 500f,
+    endY = 500f
+)
+
+// Swipe from right to left (horizontal scroll)
+service?.simulateSwipe(
+    startX = 900f,
+    startY = 800f,
+    endX = 200f,
+    endY = 800f
+)
+```
+
+<Info>
+  The swipe gesture has a 500ms duration, creating a smooth scrolling motion that mimics natural user interaction.
+</Info>
+
+---
+
+## Scroll Gestures
+
+### Scroll to Bottom
+
+Simulate a vertical swipe to scroll down the page.
+
+```kotlin
+fun simulateScrollToBottom()
+```
+
+**Example:**
+```kotlin
+val service = MyAccessibilityService.instance
+
+// Scroll down to reveal more content
+service?.simulateScrollToBottom()
+Thread.sleep(500) // Wait for scroll animation
+service?.simulateScrollToBottom()
+```
+
+<Info>
+  This method performs a swipe from Y=1200 to Y=300 at X=300, creating a downward scroll motion. The gesture duration is 700ms.
+</Info>
+
+---
+
+### Scroll to Bottom (Custom X)
+
+Scroll down at a specific horizontal position.
+
+```kotlin
+fun simulateScrollToBottomX(X: Int)
+```
+
+<ParamField path="X" type="Int" required>
+  The X coordinate where the scroll should occur
+</ParamField>
+
+**Example:**
+```kotlin
+// Scroll in the middle of a tablet screen
+service?.simulateScrollToBottomX(700)
+
+// Scroll on the left side
+service?.simulateScrollToBottomX(200)
+```
+
+<Info>
+  Useful for scrolling specific panels or sections of the screen in multi-column layouts.
+</Info>
+
+---
+
+### Scroll to Top
+
+Simulate a vertical swipe to scroll up the page.
+
+```kotlin
+fun simulateScrollToTop()
+```
+
+**Example:**
+```kotlin
+val service = MyAccessibilityService.instance
+
+// Scroll up to reveal previous content
+service?.simulateScrollToTop()
+```
+
+<Info>
+  This method performs a swipe from Y=1100 to Y=1400 at X=550, creating an upward scroll motion. The gesture duration is 700ms.
+</Info>
+
+---
+
+## Coordinate System
+
+Understanding the Android screen coordinate system:
+
+```
+(0, 0)  ┌─────────────────────────┐
+        │                         │
+        │         Screen          │
+        │                         │
+        │      (x, y)             │
+        │        •                │
+        │                         │
+        │                         │
+        └─────────────────────────┘ (width, height)
+```
+
+- **Origin (0, 0)**: Top-left corner of the screen
+- **X-axis**: Increases from left to right
+- **Y-axis**: Increases from top to bottom
+- **Dimensions**: Vary by device (e.g., 1080×1920 for Full HD phones)
+
+### Getting Screen Dimensions
+
+To make your gestures device-independent:
+
+```kotlin
+val displayMetrics = resources.displayMetrics
+val screenWidth = displayMetrics.widthPixels
+val screenHeight = displayMetrics.heightPixels
+
+// Tap at center of screen
+val centerX = screenWidth / 2f
+val centerY = screenHeight / 2f
+service?.simulateClick(centerX, centerY)
+
+// Scroll from 80% down to 20% down
+service?.simulateSwipe(
+    startX = centerX,
+    startY = screenHeight * 0.8f,
+    endX = centerX,
+    endY = screenHeight * 0.2f
+)
+```
+
+---
+
+## Advanced Gesture Techniques
+
+### Getting Node Bounds
+
+Combine node finding with gesture tapping:
+
+```kotlin
+val service = MyAccessibilityService.instance
+
+// Get bounds of an element by view ID
+val bounds = service?.getElementBoundsByViewId("com.example.app:id/button")
+if (bounds != null) {
+    // Tap at center of the element
+    val centerX = bounds.exactCenterX()
+    val centerY = bounds.exactCenterY()
+    service?.simulateClick(centerX, centerY)
+    
+    // Or tap at top-left corner
+    service?.simulateClick(bounds.left.toFloat(), bounds.top.toFloat())
+}
+```
+
+---
+
+### Multi-Step Gestures
+
+Create complex interactions with sequential gestures:
+
+```kotlin
+val service = MyAccessibilityService.instance
+
+// Open a menu with long press simulation
+repeat(3) {
+    service?.simulateClick(500f, 800f)
+    Thread.sleep(50)
+}
+
+// Swipe through carousel
+repeat(5) {
+    service?.simulateSwipe(
+        startX = 800f,
+        startY = 600f,
+        endX = 200f,
+        endY = 600f
+    )
+    Thread.sleep(1000) // Wait for animation
+}
+```
+
+---
+
+### Pinch and Zoom
+
+<Warning>
+  Pinch and zoom gestures require multi-touch support and are not directly implemented. You would need to create custom `GestureDescription` with multiple strokes.
+</Warning>
+
+Example concept (not implemented in current API):
+
+```kotlin
+// This is pseudocode - not available in current implementation
+fun simulatePinchZoom(centerX: Float, centerY: Float, scale: Float) {
+    val gestureBuilder = GestureDescription.Builder()
+    
+    // First finger
+    val path1 = Path().apply {
+        moveTo(centerX - 100, centerY)
+        lineTo(centerX - 100 * scale, centerY)
+    }
+    gestureBuilder.addStroke(StrokeDescription(path1, 0, 500))
+    
+    // Second finger
+    val path2 = Path().apply {
+        moveTo(centerX + 100, centerY)
+        lineTo(centerX + 100 * scale, centerY)
+    }
+    gestureBuilder.addStroke(StrokeDescription(path2, 0, 500))
+    
+    dispatchGesture(gestureBuilder.build(), null, null)
+}
+```
+
+---
+
+## Timing and Delays
+
+Proper timing is crucial for reliable automation:
+
+```kotlin
+val service = MyAccessibilityService.instance
+
+// Click button
+service?.simulateClick(500f, 800f)
+
+// Wait for page transition
+Thread.sleep(1000)
+
+// Check if new page loaded
+if (service?.isTextPresentOnScreen("Welcome") == true) {
+    println("Navigation successful")
+}
+
+// Type text slowly to trigger autocomplete
+service?.simulateTypeInFirstEditableField("user")
+Thread.sleep(500)
+service?.simulateTypeInFirstEditableField("username@example.com")
+```
+
+### Recommended Delays
+
+- **After click**: 300-500ms
+- **After page navigation**: 1000-2000ms
+- **After scroll**: 500-1000ms
+- **After text input**: 200-500ms
+- **Between rapid taps**: 50-100ms
+
+---
+
+## Gesture Fallback Patterns
+
+The service uses a three-tier approach for clicking:
+
+1. **Semantic click**: Try `node.performAction(ACTION_CLICK)`
+2. **Parent click**: Bubble up to find clickable parent
+3. **Gesture click**: Tap at center coordinates as fallback
+
+This is implemented in internal helper methods:
+
+```kotlin
+// Internal implementation pattern
+private fun clickNodeOrParent(node: AccessibilityNodeInfo): Boolean {
+    if (node.isClickable) return node.performAction(ACTION_CLICK)
+    var p = node.parent
+    while (p != null && !p.isClickable) p = p.parent
+    return p?.performAction(ACTION_CLICK) ?: false
+}
+
+private fun simulateNodeCenterTap(node: AccessibilityNodeInfo): Boolean {
+    val r = Rect().also { node.getBoundsInScreen(it) }
+    simulateClick(r.exactCenterX(), r.exactCenterY())
+    return true
+}
+```
+
+---
+
+## Error Handling
+
+Gesture methods handle errors gracefully:
+
+```kotlin
+fun simulateClick(x: Float, y: Float) {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
+        Log.w("MyAccessibilityService", "simulateClick requires API 24 or higher.")
+        return
+    }
+    
+    try {
+        val path = Path().apply { moveTo(x, y) }
+        val gestureBuilder = GestureDescription.Builder()
+        val stroke = StrokeDescription(path, 0, 50)
+        gestureBuilder.addStroke(stroke)
+        dispatchGesture(gestureBuilder.build(), null, null)
+    } catch (e: Exception) {
+        Log.e("MyAccessibilityService", "Error simulating click: ${e.message}")
+    }
+}
+```
+
+---
+
+## Best Practices
+
+<Check>
+  Prefer element-based clicking (by view ID, content description) over coordinate-based tapping when possible
+</Check>
+
+<Check>
+  Use relative coordinates (percentages of screen size) instead of absolute pixels for device independence
+</Check>
+
+<Check>
+  Add appropriate delays after gestures to allow animations and UI updates to complete
+</Check>
+
+<Check>
+  Test gestures on multiple screen sizes and densities
+</Check>
+
+<Warning>
+  Avoid hardcoding coordinates - they will fail on different devices and orientations
+</Warning>
+
+<Warning>
+  Rapid repeated gestures may be throttled by the system or ignored by apps
+</Warning>
+
+---
+
+## Common Patterns
+
+### Infinite Scroll Loading
+
+```kotlin
+val service = MyAccessibilityService.instance
+
+// Load more items by scrolling
+repeat(10) {
+    service?.simulateScrollToBottom()
+    Thread.sleep(1500) // Wait for content to load
+    
+    if (service?.isTextPresentOnScreen("No more items") == true) {
+        break
+    }
+}
+```
+
+### Pull to Refresh
+
+```kotlin
+// Swipe from top down to trigger refresh
+service?.simulateSwipe(
+    startX = 500f,
+    startY = 200f,
+    endX = 500f,
+    endY = 1000f
+)
+Thread.sleep(2000) // Wait for refresh
+```
+
+### Horizontal Carousel Navigation
+
+```kotlin
+// Swipe left to see next item
+service?.simulateSwipe(
+    startX = 800f,
+    startY = 600f,
+    endX = 200f,
+    endY = 600f
+)
+```
+
+### Dismiss Bottom Sheet
+
+```kotlin
+// Swipe down to dismiss
+service?.simulateSwipe(
+    startX = 500f,
+    startY = 1000f,
+    endX = 500f,
+    endY = 1800f
+)
+```
+
+---
+
+## Debugging Gestures
+
+Enable touch visualization to debug gesture coordinates:
+
+```bash
+# Enable show touches in Developer Options
+adb shell settings put system show_touches 1
+
+# Enable pointer location
+adb shell settings put system pointer_location 1
+
+# Disable after debugging
+adb shell settings put system show_touches 0
+adb shell settings put system pointer_location 0
+```
+
+Log gesture coordinates:
+
+```kotlin
+fun simulateClick(x: Float, y: Float) {
+    Log.d("Gesture", "Tapping at ($x, $y)")
+    // ... implementation
+}
+```
+
+---
+
+## API Reference
+
+| Method | API Level | Duration | Description |
+|--------|-----------|----------|-------------|
+| `simulateClick` | 24+ | 50ms | Single tap at coordinates |
+| `simulateSwipe` | 24+ | 500ms | Swipe from start to end point |
+| `simulateScrollToBottom` | 24+ | 700ms | Scroll down (Y: 1200→300) |
+| `simulateScrollToBottomX` | 24+ | 700ms | Scroll down at specific X |
+| `simulateScrollToTop` | 24+ | 700ms | Scroll up (Y: 1100→1400) |
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Node Operations" icon="mouse-pointer" href="/api/accessibility/node-operations">
+    Learn element-based interaction methods
+  </Card>
+  <Card title="Overview" icon="book" href="/api/accessibility/overview">
+    Return to Accessibility Service overview
+  </Card>
+</CardGroup>

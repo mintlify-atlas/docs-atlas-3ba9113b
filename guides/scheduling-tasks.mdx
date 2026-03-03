@@ -1,0 +1,537 @@
+---
+title: "Scheduling Recurring Tasks"
+description: "Use cron expressions to schedule PhoneClaw automations that run automatically at specific times or intervals"
+---
+
+## Overview
+
+PhoneClaw's scheduler lets you run automations automatically at specific times or recurring intervals using cron expressions. This is perfect for social media posting, periodic data checks, or any task that needs to run without manual intervention.
+
+<Note>
+Scheduled tasks run in the background even when PhoneClaw isn't actively open. The scheduler checks for tasks every minute and executes them according to their cron schedule.
+</Note>
+
+## The `schedule()` Function
+
+Schedule tasks using the ClawScript `schedule()` function:
+
+```javascript
+schedule(taskDescription, cronExpression)
+```
+
+**Parameters:**
+- `taskDescription` (string): A description or reference to your automation task
+- `cronExpression` (string): A cron expression defining when to run
+
+**Example:**
+```javascript
+schedule("Tweet every hour", "0 * * * *")
+```
+
+## Creating Scheduled Tasks
+
+<Steps>
+
+### Write Your Automation
+
+First, create the automation logic you want to schedule:
+
+```javascript
+const postTweet = () => {
+  speakText("Starting scheduled tweet")
+  
+  // Open Twitter
+  magicClicker("Compose tweet button")
+  delay(2000)
+  
+  // Type and post
+  magicClicker("Tweet text field")
+  delay(500)
+  // Type your message here
+  
+  magicClicker("Post button")
+  delay(2000)
+  
+  speakText("Tweet posted successfully")
+}
+```
+
+### Add the Schedule
+
+Wrap your automation with a schedule:
+
+```javascript
+const postTweet = () => {
+  speakText("Starting scheduled tweet")
+  magicClicker("Compose tweet button")
+  delay(2000)
+  magicClicker("Tweet text field")
+  delay(500)
+  magicClicker("Post button")
+  delay(2000)
+  speakText("Tweet posted")
+}
+
+// Run every hour
+schedule("postTweet", "0 * * * *")
+speakText("Scheduled to run every hour")
+```
+
+### View Scheduled Tasks
+
+1. Open PhoneClaw
+2. Go to the **Scheduled Tasks** tab
+3. Your task appears with:
+   - Task description
+   - Cron expression
+   - Last execution time
+   - Next scheduled run
+   - Active status
+
+### Clear Schedules
+
+To remove all scheduled tasks:
+
+```javascript
+clearSchedule()
+```
+
+Or use the UI:
+1. Open PhoneClaw
+2. Tap **Clear Schedule** button
+3. Confirm to remove all scheduled tasks
+
+</Steps>
+
+## Understanding Cron Expressions
+
+Cron expressions define when tasks run using 5 time fields:
+
+```
+┌───────────── minute (0 - 59)
+│ ┌───────────── hour (0 - 23)
+│ │ ┌───────────── day of month (1 - 31)
+│ │ │ ┌───────────── month (1 - 12)
+│ │ │ │ ┌───────────── day of week (0 - 7) (0 and 7 are Sunday)
+│ │ │ │ │
+│ │ │ │ │
+* * * * *
+```
+
+### Special Characters
+
+- **`*`** - Any value (every minute, every hour, etc.)
+- **`,`** - Value list separator (`1,15,30`)
+- **`-`** - Range of values (`1-5`)
+- **`/`** - Step values (`*/15` = every 15 units)
+
+## Common Cron Patterns
+
+### Every Hour
+
+```javascript
+schedule("Hourly task", "0 * * * *")
+// Runs at: 1:00, 2:00, 3:00, etc.
+```
+
+### Every 30 Minutes
+
+```javascript
+schedule("Half-hourly task", "*/30 * * * *")
+// Runs at: :00 and :30 of every hour
+```
+
+### Every Day at 9 AM
+
+```javascript
+schedule("Morning task", "0 9 * * *")
+// Runs daily at 9:00 AM
+```
+
+### Every Weekday at 8 AM
+
+```javascript
+schedule("Weekday morning", "0 8 * * 1-5")
+// Runs Monday through Friday at 8:00 AM
+```
+
+### Every Monday at Noon
+
+```javascript
+schedule("Weekly Monday task", "0 12 * * 1")
+// Runs every Monday at 12:00 PM
+```
+
+### Twice Daily (9 AM and 6 PM)
+
+```javascript
+schedule("Twice daily", "0 9,18 * * *")
+// Runs at 9:00 AM and 6:00 PM every day
+```
+
+### First Day of Every Month
+
+```javascript
+schedule("Monthly task", "0 0 1 * *")
+// Runs at midnight on the 1st of each month
+```
+
+### Every 15 Minutes During Work Hours
+
+```javascript
+schedule("Work hours", "*/15 9-17 * * 1-5")
+// Runs every 15 minutes from 9 AM to 5 PM on weekdays
+```
+
+<Tip>
+Use [crontab.guru](https://crontab.guru) to test and validate your cron expressions with human-readable descriptions.
+</Tip>
+
+## Real-World Scheduling Examples
+
+### Social Media Posting
+
+Post to multiple platforms throughout the day:
+
+```javascript
+const postToSocial = () => {
+  speakText("Running social media post")
+  
+  // Post to Twitter
+  magicClicker("Compose tweet button")
+  delay(2000)
+  magicClicker("Tweet text field")
+  delay(500)
+  // Type content
+  magicClicker("Post button")
+  delay(3000)
+  
+  // Switch to Instagram
+  // ... Instagram posting logic
+  
+  speakText("Posted to all platforms")
+}
+
+// Post 3 times per day: 9am, 1pm, 6pm
+schedule("postToSocial", "0 9,13,18 * * *")
+```
+
+### Email Check Every 10 Minutes
+
+```javascript
+const checkEmail = () => {
+  speakText("Checking email")
+  
+  // Open email app
+  magicClicker("Inbox or email app")
+  delay(2000)
+  
+  // Check for urgent emails
+  const hasUrgent = magicScraper("Are there any unread urgent emails?")
+  
+  if (hasUrgent.toLowerCase().includes("yes")) {
+    speakText("Urgent email detected")
+    // Handle urgent email
+  }
+  
+  speakText("Email check complete")
+}
+
+// Check every 10 minutes during work hours
+schedule("checkEmail", "*/10 9-17 * * 1-5")
+```
+
+### Nightly Backup
+
+```javascript
+const backupData = () => {
+  speakText("Starting nightly backup")
+  
+  // Export data from various apps
+  // Upload to cloud storage
+  // Verify backup completed
+  
+  speakText("Backup completed successfully")
+}
+
+// Run every night at 2 AM
+schedule("backupData", "0 2 * * *")
+```
+
+### Weekend Morning Routine
+
+```javascript
+const weekendRoutine = () => {
+  speakText("Good morning! Starting weekend routine")
+  
+  // Check weather
+  const weather = magicScraper("What is today's weather forecast?")
+  speakText("Today's weather: " + weather)
+  
+  // Check calendar
+  magicClicker("Calendar app")
+  delay(2000)
+  
+  const events = magicScraper("What events are scheduled for today?")
+  speakText("Today's events: " + events)
+  
+  speakText("Weekend routine complete")
+}
+
+// Run Saturday and Sunday at 8 AM
+schedule("weekendRoutine", "0 8 * * 0,6")
+```
+
+## Combining Multiple Schedules
+
+Run different tasks on different schedules:
+
+```javascript
+// Frequent: Check notifications every 5 minutes
+const checkNotifications = () => {
+  magicClicker("Notifications")
+  delay(1000)
+  const count = magicScraper("How many unread notifications?")
+  speakText(count + " notifications")
+}
+schedule("checkNotifications", "*/5 * * * *")
+
+// Hourly: Post social media updates
+const postUpdate = () => {
+  magicClicker("Create post")
+  delay(2000)
+  // Post content
+}
+schedule("postUpdate", "0 * * * *")
+
+// Daily: Generate report at end of day
+const generateReport = () => {
+  speakText("Generating daily report")
+  // Collect and compile data
+}
+schedule("generateReport", "0 17 * * 1-5")
+
+// Weekly: Clean up on Sundays
+const weeklyCleanup = () => {
+  speakText("Running weekly cleanup")
+  // Archive old data
+}
+schedule("weeklyCleanup", "0 0 * * 0")
+
+speakText("All schedules configured")
+```
+
+## Managing Scheduled Tasks
+
+### View All Tasks
+
+From the MainActivity code, scheduled tasks are stored with:
+
+```javascript
+{
+  id: "unique-task-id",
+  taskDescription: "Your task description",
+  cronExpression: "0 * * * *",
+  createdAt: 1234567890,
+  lastExecuted: 1234567890,
+  isActive: true
+}
+```
+
+### Task Status
+
+Each task shows:
+- **Created At**: When the schedule was created
+- **Last Executed**: When it last ran
+- **Next Run**: Calculated from cron expression
+- **Active Status**: Whether it's currently enabled
+
+### Disable vs Delete
+
+To temporarily pause without deleting:
+
+```javascript
+// This requires accessing task management
+// Currently, use clearSchedule() to remove all
+clearSchedule()
+
+// Then re-add only the ones you want
+schedule("Keep this one", "0 * * * *")
+```
+
+<Warning>
+`clearSchedule()` removes ALL scheduled tasks. There's no way to selectively remove individual tasks in the current ClawScript API.
+</Warning>
+
+## Scheduler Behavior
+
+### How the Scheduler Works
+
+From the PhoneClaw source code:
+
+1. **Cron Checker** runs continuously in a coroutine
+2. Checks every minute if any tasks are due
+3. Compares current time against cron expressions
+4. Executes matching tasks
+5. Updates `lastExecuted` timestamp
+6. Schedules next check
+
+### Execution Guarantees
+
+- Tasks run within 1 minute of scheduled time
+- If the device is asleep, tasks run when it wakes
+- Missed tasks don't run retroactively
+- Only one instance of a task runs at a time
+
+### Battery Considerations
+
+<Warning>
+Frequent scheduled tasks can drain battery. Use reasonable intervals:
+- Every 5+ minutes is generally safe
+- Every 1-2 minutes may impact battery life
+- Every few seconds is not recommended for production
+</Warning>
+
+## Debugging Scheduled Tasks
+
+### Test Your Cron Expression
+
+Before scheduling, verify your cron works:
+
+```javascript
+// Set to run in 2 minutes from now
+schedule("Test task", "*/2 * * * *")
+speakText("Test scheduled for 2 minutes")
+
+// Watch the Scheduled Tasks tab to verify it executes
+```
+
+### Add Logging
+
+Include speech feedback to confirm execution:
+
+```javascript
+const myTask = () => {
+  const now = new Date().toLocaleTimeString()
+  speakText("Task running at " + now)
+  
+  // Your automation logic
+  
+  speakText("Task completed")
+}
+
+schedule("myTask", "*/15 * * * *")
+```
+
+### Check Last Execution
+
+View the Scheduled Tasks tab to see:
+- When the task last ran
+- If it's running on schedule
+- Any execution errors
+
+## Best Practices
+
+### Use Reasonable Intervals
+
+<CodeGroup>
+```javascript ❌ Too Frequent
+schedule("Check", "* * * * *") // Every minute
+```
+
+```javascript ✅ Reasonable
+schedule("Check", "*/5 * * * *") // Every 5 minutes
+```
+</CodeGroup>
+
+### Add Error Handling
+
+```javascript
+const robustTask = () => {
+  try {
+    speakText("Task starting")
+    
+    magicClicker("Some button")
+    delay(2000)
+    
+    const result = magicScraper("Did it work?")
+    if (result.includes("success")) {
+      speakText("Task succeeded")
+    } else {
+      speakText("Task may have failed")
+    }
+  } catch (error) {
+    speakText("Error in scheduled task")
+  }
+}
+
+schedule("robustTask", "0 * * * *")
+```
+
+### Clear Old Schedules
+
+Before creating new schedules, clear old ones:
+
+```javascript
+// Remove all previous schedules
+clearSchedule()
+
+// Add new schedules
+schedule("newTask1", "0 9 * * *")
+schedule("newTask2", "0 18 * * *")
+```
+
+### Use Descriptive Names
+
+<CodeGroup>
+```javascript ❌ Unclear
+schedule("task1", "0 * * * *")
+```
+
+```javascript ✅ Descriptive
+schedule("hourly-twitter-post", "0 * * * *")
+```
+</CodeGroup>
+
+## Troubleshooting
+
+### Task Not Running
+
+- Verify cron expression at crontab.guru
+- Check device isn't in aggressive battery saving mode
+- Ensure PhoneClaw accessibility service is enabled
+- Check Scheduled Tasks tab for error messages
+
+### Task Runs at Wrong Time
+
+- Verify device time zone is correct
+- Cron uses 24-hour format (0-23 for hours)
+- Day of week: 0 and 7 both mean Sunday
+- Check if you meant AM vs PM
+
+### Multiple Tasks Conflict
+
+- Stagger schedules by a few minutes
+- Don't schedule two tasks at exact same time
+- Add delays between app switches
+
+### Battery Drain
+
+- Reduce task frequency
+- Combine multiple checks into one task
+- Schedule during specific hours only
+- Use `*/15` instead of `*/5` for intervals
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Multi-App Workflows" href="/guides/multi-app-workflows" icon="grid">
+    Chain scheduled tasks across apps
+  </Card>
+  <Card title="ClawScript Functions" href="/api-reference/clawscript-functions" icon="code">
+    See all available automation functions
+  </Card>
+  <Card title="Voice Commands" href="/guides/voice-commands" icon="microphone">
+    Generate schedules with voice
+  </Card>
+</CardGroup>

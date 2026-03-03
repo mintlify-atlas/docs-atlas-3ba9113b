@@ -1,0 +1,453 @@
+---
+title: 'Task Scheduling'
+description: 'Schedule recurring automations with cron expressions'
+icon: 'calendar'
+---
+
+## schedule()
+
+Schedules a task to run repeatedly based on a cron expression. Perfect for recurring automations like posting content, checking notifications, or performing maintenance.
+
+<ParamField path="task" type="string" required>
+  JavaScript code to execute. Can be a single statement or a function call.
+</ParamField>
+
+<ParamField path="cronExpression" type="string" required>
+  Cron expression defining when the task runs. Format: `second minute hour day month dayOfWeek`
+</ParamField>
+
+<ResponseField name="return" type="void">
+  The task is registered and will run according to the schedule.
+</ResponseField>
+
+### Basic Usage
+
+```javascript
+// Run every 5 minutes
+Android.schedule(
+  "Android.speakText('5 minute check')",
+  "0 */5 * * * *"
+);
+
+// Run every hour
+Android.schedule(
+  "Android.speakText('Hourly update')",
+  "0 0 * * * *"
+);
+
+// Run every day at 9 AM
+Android.schedule(
+  "Android.speakText('Good morning')",
+  "0 0 9 * * *"
+);
+```
+
+## Cron Expression Format
+
+Cron expressions use 6 fields:
+
+```
+┌───────────── second (0-59)
+│ ┌───────────── minute (0-59)
+│ │ ┌───────────── hour (0-23)
+│ │ │ ┌───────────── day of month (1-31)
+│ │ │ │ ┌───────────── month (1-12)
+│ │ │ │ │ ┌───────────── day of week (0-7, 0=Sunday)
+│ │ │ │ │ │
+* * * * * *
+```
+
+### Common Cron Patterns
+
+<AccordionGroup>
+  <Accordion title="Every N minutes">
+    ```javascript
+    // Every 1 minute
+    "0 */1 * * * *"
+    
+    // Every 5 minutes
+    "0 */5 * * * *"
+    
+    // Every 15 minutes
+    "0 */15 * * * *"
+    
+    // Every 30 minutes
+    "0 */30 * * * *"
+    ```
+  </Accordion>
+
+  <Accordion title="Every N hours">
+    ```javascript
+    // Every hour
+    "0 0 * * * *"
+    
+    // Every 2 hours
+    "0 0 */2 * * *"
+    
+    // Every 6 hours
+    "0 0 */6 * * *"
+    
+    // Every 12 hours
+    "0 0 */12 * * *"
+    ```
+  </Accordion>
+
+  <Accordion title="Specific times">
+    ```javascript
+    // Every day at 9:00 AM
+    "0 0 9 * * *"
+    
+    // Every day at 2:30 PM
+    "0 30 14 * * *"
+    
+    // Weekdays at 8:00 AM
+    "0 0 8 * * 1-5"
+    
+    // Weekends at 10:00 AM
+    "0 0 10 * * 0,6"
+    ```
+  </Accordion>
+
+  <Accordion title="Complex patterns">
+    ```javascript
+    // Every 30 seconds
+    "*/30 * * * * *"
+    
+    // First day of every month at midnight
+    "0 0 0 1 * *"
+    
+    // Every Monday at 9:00 AM
+    "0 0 9 * * 1"
+    
+    // Every weekday at 6:00 PM
+    "0 0 18 * * 1-5"
+    ```
+  </Accordion>
+</AccordionGroup>
+
+### Practical Examples
+
+<CodeGroup>
+
+```javascript Social Media
+// Post to Instagram every 2 hours
+Android.schedule(
+  "postToInstagram()",
+  "0 0 */2 * * *"
+);
+
+function postToInstagram() {
+  Android.speakText("Starting Instagram post");
+  // ... posting logic ...
+  Android.speakText("Post complete");
+}
+```
+
+```javascript Notifications
+// Check messages every 15 minutes
+Android.schedule(
+  "checkNewMessages()",
+  "0 */15 * * * *"
+);
+
+function checkNewMessages() {
+  const count = getMessageCount();
+  if (count > 0) {
+    Android.speakText("You have " + count + " new messages");
+  }
+}
+```
+
+```javascript Maintenance
+// Clear cache every day at 3 AM
+Android.schedule(
+  "performMaintenance()",
+  "0 0 3 * * *"
+);
+
+function performMaintenance() {
+  Android.speakText("Starting maintenance");
+  // ... cleanup tasks ...
+  Android.speakText("Maintenance complete");
+}
+```
+
+```javascript Reminders
+// Hourly reminder during work hours (9 AM - 5 PM)
+Android.schedule(
+  "Android.speakText('Time for a break')",
+  "0 0 9-17 * * *"
+);
+```
+
+</CodeGroup>
+
+## Implementation Details
+
+### Source Location
+
+`MainActivity.kt:5488`
+
+```kotlin
+@JavascriptInterface
+fun schedule(task: String, cronExpression: String) {
+    try {
+        val taskId = this@MainActivity.addCronTask(task, cronExpression)
+        val interval = this@MainActivity.getIntervalFromCron(cronExpression)
+        
+        Log.d("AndroidJSInterface", "Scheduled task: $task with cron: $cronExpression (ID: $taskId), interval: ${interval}ms")
+        
+        if (interval != null) {
+            val seconds = interval / 1000
+            val minutes = seconds / 60
+            val hours = minutes / 60
+            
+            val timeDescription = when {
+                hours > 0 -> "$hours hours"
+                minutes > 0 -> "$minutes minutes"
+                else -> "$seconds seconds"
+            }
+            
+            speakText("Scheduled task: $task to run every $timeDescription")
+        } else {
+            speakText("Scheduled task: $task with custom timing")
+        }
+        
+        runOnUiThread { updateUI() }
+    } catch (e: Exception) {
+        Log.e("AndroidJSInterface", "Error scheduling task: ${e.message}")
+        speakText("Error scheduling task")
+    }
+}
+```
+
+### Task Storage
+
+Scheduled tasks are:
+- Persisted to SharedPreferences
+- Survive app restarts
+- Checked by a background cron checker thread
+- Assigned unique IDs for management
+
+<Info>
+  Tasks execute on a scheduled executor service with 2 threads. Long-running tasks should be avoided.
+</Info>
+
+## clearSchedule()
+
+Removes all scheduled tasks. Useful for resetting automation state or clearing old schedules.
+
+<ResponseField name="return" type="void">
+  All scheduled tasks are cleared and removed from storage.
+</ResponseField>
+
+### Usage
+
+```javascript
+// Clear all scheduled tasks
+Android.clearSchedule();
+```
+
+### Implementation
+
+`MainActivity.kt:5525`
+
+```kotlin
+@JavascriptInterface
+fun clearSchedule() {
+    try {
+        val taskCount = this@MainActivity.cronTasks.size
+        this@MainActivity.cronTasks.clear()
+        this@MainActivity.saveCronTasks()
+        speakText("Cleared $taskCount scheduled tasks")
+        Log.d("AndroidJSInterface", "Cleared all scheduled tasks")
+        runOnUiThread { updateUI() }
+    } catch (e: Exception) {
+        Log.e("AndroidJSInterface", "Error clearing schedule: ${e.message}")
+        speakText("Error clearing scheduled tasks")
+    }
+}
+```
+
+## Complete Examples
+
+### Instagram Posting Bot
+
+```javascript
+// Schedule posts every 3 hours
+Android.schedule(
+  "autoPostInstagram()",
+  "0 0 */3 * * *"
+);
+
+function autoPostInstagram() {
+  Android.speakText("Starting Instagram automation");
+  
+  // Open Instagram
+  Android.simulateClick(200, 1800);
+  Android.delay(3000);
+  
+  // Click new post
+  Android.simulateClick(400, 1800);
+  Android.delay(2000);
+  
+  // Select media
+  Android.simulateClick(200, 500);
+  Android.delay(1000);
+  
+  // Next
+  Android.clickNodesByContentDescription("Next");
+  Android.delay(1500);
+  
+  // Next again
+  Android.clickNodesByContentDescription("Next");
+  Android.delay(1500);
+  
+  // Add caption
+  Android.simulateTypeInFirstEditableField("Auto-posted content");
+  Android.delay(1000);
+  
+  // Share
+  Android.clickNodesByContentDescription("Share");
+  Android.delay(3000);
+  
+  Android.speakText("Instagram post complete");
+}
+```
+
+### Email Digest
+
+```javascript
+// Send daily summary at 6 PM
+Android.schedule(
+  "sendDailySummary()",
+  "0 0 18 * * *"
+);
+
+function sendDailySummary() {
+  const stats = {
+    postsCreated: 5,
+    messagesChecked: 23,
+    tasksCompleted: 8
+  };
+  
+  const message = `Daily Summary:
+    Posts Created: ${stats.postsCreated}
+    Messages Checked: ${stats.messagesChecked}
+    Tasks Completed: ${stats.tasksCompleted}`;
+  
+  Android.sendAgentEmail(
+    "user@example.com",
+    "PhoneClaw Daily Summary",
+    message
+  );
+  
+  Android.speakText("Daily summary sent");
+}
+```
+
+### Status Checker
+
+```javascript
+// Check app status every 30 minutes
+Android.schedule(
+  "checkAppStatus()",
+  "0 */30 * * * *"
+);
+
+function checkAppStatus() {
+  if (Android.isTextPresentOnScreen("Error")) {
+    Android.speakText("Error detected, restarting app");
+    // Restart logic
+  } else if (Android.isTextPresentOnScreen("Login")) {
+    Android.speakText("Logged out, logging back in");
+    // Re-login logic
+  } else {
+    Android.speakText("App status normal");
+  }
+}
+```
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Keep task code simple">
+    Scheduled tasks should call functions rather than containing complex inline code.
+    
+    ```javascript
+    // Good
+    Android.schedule("performTask()", "0 */5 * * * *");
+    
+    // Avoid
+    Android.schedule(
+      "Android.speakText('test'); Android.delay(1000); Android.simulateClick(100, 200); ...",
+      "0 */5 * * * *"
+    );
+    ```
+  </Accordion>
+
+  <Accordion title="Include error handling in scheduled functions">
+    Errors in scheduled tasks should be caught and handled gracefully.
+    
+    ```javascript
+    function scheduledTask() {
+      try {
+        // Task logic
+      } catch (e) {
+        Android.speakText("Scheduled task failed: " + e.message);
+        Android.sendAgentEmail(
+          "admin@example.com",
+          "Task Failed",
+          e.message
+        );
+      }
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Avoid scheduling too frequently">
+    Very frequent tasks (every second) can drain battery and CPU.
+    
+    ```javascript
+    // Avoid
+    "* * * * * *" // Every second
+    
+    // Better
+    "0 */5 * * * *" // Every 5 minutes
+    ```
+  </Accordion>
+
+  <Accordion title="Clear old schedules before creating new ones">
+    Prevent duplicate tasks by clearing before scheduling.
+    
+    ```javascript
+    Android.clearSchedule();
+    Android.schedule("myTask()", "0 */10 * * * *");
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Viewing Scheduled Tasks
+
+Scheduled tasks appear in the PhoneClaw UI:
+
+1. Open the PhoneClaw app
+2. Navigate to the **Scheduled Tasks** tab
+3. View all active tasks with their cron expressions
+4. See last execution time and next scheduled time
+
+## Limitations
+
+<Warning>
+  - Maximum of 100 concurrent scheduled tasks
+  - Tasks must complete before the next scheduled execution
+  - Long-running tasks (>5 minutes) may be terminated
+  - Schedule persists but execution pauses if device is off
+  - Requires app to remain running in background
+</Warning>
+
+## Related Functions
+
+- [delay()](/api/timing) - Add delays within scheduled tasks
+- [speakText()](/api/speech) - Announce scheduled task execution
+- [sendAgentEmail()](/api/notifications) - Send notifications from scheduled tasks

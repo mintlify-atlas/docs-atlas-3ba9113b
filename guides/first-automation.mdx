@@ -1,0 +1,303 @@
+---
+title: "Creating Your First Automation"
+description: "Build your first PhoneClaw automation workflow using ClawScript to automate app interactions"
+---
+
+## Overview
+
+This guide walks you through creating your first automation workflow with PhoneClaw. You'll learn how to use ClawScript's core functions to click buttons, wait for actions, and chain commands together.
+
+## What You'll Build
+
+A simple automation that:
+1. Opens Twitter
+2. Finds and clicks the compose button
+3. Types a message
+4. Posts the tweet
+
+<Note>
+This example uses Twitter, but the same patterns work for any Android app. PhoneClaw uses the Accessibility API to interact with UI elements across all apps.
+</Note>
+
+## Understanding ClawScript
+
+ClawScript is a JavaScript-based scripting language that runs inside PhoneCalk using an embedded JS engine. It provides helper functions for automation:
+
+- **`magicClicker(description)`** - Find and tap UI elements by description
+- **`magicScraper(question)`** - Extract text/data from the screen
+- **`delay(ms)`** - Pause execution
+- **`speakText(text)`** - Provide audio feedback
+- **`schedule(task, cronExpression)`** - Schedule recurring tasks
+
+## Your First Script
+
+<Steps>
+
+### Open the Script Editor
+
+1. Launch PhoneClaw on your device
+2. You'll see the main interface with tabs for "Scheduled Tasks" and "Generation History"
+3. Tap the **microphone button** at the bottom to start creating a script
+
+### Write the Automation
+
+Here's a complete script that automates posting on Twitter:
+
+```javascript
+// Open Twitter app
+speakText("Opening Twitter")
+delay(2000)
+
+// Click the compose button (blue button with pen icon)
+magicClicker("Compose tweet button in bottom right")
+delay(1500)
+
+// Wait for compose screen to open
+speakText("Compose screen opened")
+delay(1000)
+
+// Click the text input field
+magicClicker("Tweet text input field")
+delay(500)
+
+// Type the tweet content
+speakText("Typing tweet")
+// Note: Text input requires accessibility service
+// You'll need to manually type or use system input
+
+// Click the post button
+delay(1000)
+magicClicker("Post button in top right")
+
+// Confirm completion
+delay(2000)
+speakText("Tweet posted successfully")
+```
+
+<Tip>
+`magicClicker` uses vision AI to find elements by natural language description. Be specific but natural: "blue post button" works better than "button".
+</Tip>
+
+### Understanding the Flow
+
+Let's break down what each part does:
+
+**Speak and Delay Pattern**
+```javascript
+speakText("Opening Twitter")
+delay(2000)
+```
+Provides audio feedback and waits for actions to complete. Always add delays after clicks to let the UI respond.
+
+**Vision-Based Clicking**
+```javascript
+magicClicker("Compose tweet button in bottom right")
+```
+Describes the element you want to click. Include location hints ("bottom right") and visual characteristics ("blue button").
+
+**Chaining Actions**
+```javascript
+magicClicker("Tweet text input field")
+delay(500)
+magicClicker("Post button in top right")
+```
+Sequence multiple clicks with delays between them.
+
+### Test Your Script
+
+Before running the full automation:
+
+1. Make sure Twitter is installed and you're logged in
+2. Test individual commands first:
+   ```javascript
+   magicClicker("Compose tweet button")
+   ```
+3. Check the PhoneClaw logs to verify elements were found
+4. Adjust delays if actions are happening too fast/slow
+
+### Run the Automation
+
+1. Save your script in PhoneClaw
+2. Navigate to your device's home screen
+3. Open Twitter manually (or add app launch logic)
+4. Tap **Run** in PhoneClaw
+5. Watch PhoneClaw execute each step
+
+<Warning>
+PhoneClaw requires screen access during automation. Don't lock your screen or switch apps while the script is running.
+</Warning>
+
+</Steps>
+
+## Common Patterns
+
+### Waiting for Elements to Appear
+
+Use `magicScraper` to check if an element exists before clicking:
+
+```javascript
+magicClicker("Settings button")
+delay(2000)
+
+// Verify settings screen opened
+const screenTitle = magicScraper("What is the title text at the top of the screen?")
+if (screenTitle.includes("Settings")) {
+  speakText("Settings opened successfully")
+} else {
+  speakText("Error: Settings did not open")
+}
+```
+
+### Looping Actions
+
+Repeat actions with standard JavaScript loops:
+
+```javascript
+// Like the first 5 posts
+for (let i = 0; i < 5; i++) {
+  magicClicker("Heart icon to like the post")
+  delay(1000)
+  
+  // Scroll to next post
+  magicClicker("Next post below")
+  delay(1500)
+}
+
+speakText("Liked 5 posts")
+```
+
+### Extracting Data
+
+Read on-screen text with `magicScraper`:
+
+```javascript
+magicClicker("Open first notification")
+delay(2000)
+
+// Extract the notification message
+const message = magicScraper("What is the notification message text?")
+speakText("Notification says: " + message)
+
+// Use the data in branching logic
+if (message.includes("mentioned you")) {
+  magicClicker("Reply button")
+  delay(1000)
+  speakText("Opening reply")
+}
+```
+
+### Error Handling
+
+Add try-catch blocks for robust automation:
+
+```javascript
+try {
+  magicClicker("Submit button")
+  delay(2000)
+  
+  const success = magicScraper("Is there a success message visible?")
+  if (success.toLowerCase().includes("yes")) {
+    speakText("Submission successful")
+  } else {
+    speakText("Submission may have failed")
+  }
+} catch (error) {
+  speakText("Error during submission")
+}
+```
+
+## Real-World Example: Instagram Login
+
+Here's a complete example that automates Instagram account creation:
+
+```javascript
+// Navigate to create account
+magicClicker("Create account button")
+delay(2000)
+
+// Fill in email
+magicClicker("Email address field")
+delay(500)
+// Type email via accessibility service
+
+// Continue to next step
+magicClicker("Next button")
+delay(2000)
+
+// Wait for verification code
+speakText("Waiting for verification code")
+delay(5000)
+
+// Extract the 2FA code from screen
+const otpCode = magicScraper("What is the 6-digit verification code shown?")
+speakText("Code received: " + otpCode)
+
+// Enter the code
+magicClicker("Verification code input field")
+delay(500)
+// Type OTP code
+
+// Complete setup
+magicClicker("Confirm button")
+delay(3000)
+speakText("Account created successfully")
+```
+
+<Note>
+This example demonstrates multi-step workflows with verification codes, similar to the Instagram automation shown in PhoneClaw's demo videos.
+</Note>
+
+## Debugging Your Automation
+
+### Use Speaking for Progress Tracking
+
+```javascript
+speakText("Step 1: Opening app")
+delay(1000)
+
+speakText("Step 2: Clicking login")
+magicClicker("Login button")
+delay(2000)
+
+speakText("Step 3: Complete")
+```
+
+### Test Element Descriptions
+
+If `magicClicker` can't find an element, try different descriptions:
+
+```javascript
+// Try these variations:
+magicClicker("Blue send button")           // color + type
+magicClicker("Send button in bottom right") // type + position
+magicClicker("Arrow icon to send")          // icon + action
+```
+
+### Check Delays
+
+Adjust timing based on your device speed:
+
+```javascript
+// Slow device - increase delays
+delay(3000)
+
+// Fast device - reduce delays
+delay(800)
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Voice Command Generation" href="/guides/voice-commands" icon="microphone">
+    Generate scripts by describing what you want
+  </Card>
+  <Card title="Schedule Recurring Tasks" href="/guides/scheduling-tasks" icon="clock">
+    Run automations on a cron schedule
+  </Card>
+  <Card title="Multi-App Workflows" href="/guides/multi-app-workflows" icon="grid">
+    Chain actions across multiple apps
+  </Card>
+  <Card title="ClawScript API" href="/api-reference/clawscript-functions" icon="code">
+    Full reference for all functions
+  </Card>
+</CardGroup>

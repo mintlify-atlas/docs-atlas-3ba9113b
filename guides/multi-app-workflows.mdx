@@ -1,0 +1,727 @@
+---
+title: "Multi-App Workflows"
+description: "Chain automation actions across multiple Android apps to create complex workflows with PhoneClaw"
+---
+
+## Overview
+
+PhoneClaw's most powerful feature is the ability to automate workflows that span multiple apps. You can extract data from one app, process it, and input it into another — all automatically.
+
+<Note>
+Multi-app workflows are what make PhoneClaw unique. Unlike app-specific automation tools, PhoneClaw uses Android's Accessibility API to interact with any app on your device.
+</Note>
+
+## How Multi-App Workflows Work
+
+1. **App Switching**: Navigate between apps programmatically
+2. **Data Extraction**: Use `magicScraper` to read content from one app
+3. **Data Transfer**: Store extracted data in variables
+4. **Input to New App**: Use `magicClicker` to navigate and input data
+5. **Verification**: Confirm actions completed successfully
+
+## Building Your First Multi-App Workflow
+
+<Steps>
+
+### Plan the Workflow
+
+Before coding, map out the steps:
+
+**Example: Twitter → Instagram Cross-Post**
+1. Open Twitter
+2. Read latest tweet text
+3. Open Instagram
+4. Create new post
+5. Paste tweet text as caption
+6. Publish post
+
+### Write the Script
+
+```javascript
+speakText("Starting Twitter to Instagram cross-post")
+
+// Step 1: Get content from Twitter
+magicClicker("Profile icon in Twitter")
+delay(2000)
+
+magicClicker("Your latest tweet")
+delay(1500)
+
+// Extract tweet text
+const tweetText = magicScraper("What is the text content of this tweet?")
+speakText("Tweet text extracted")
+delay(1000)
+
+// Step 2: Navigate to Instagram
+magicClicker("Home button")
+delay(1000)
+
+magicClicker("Instagram app icon")
+delay(3000)
+
+speakText("Instagram opened")
+
+// Step 3: Create Instagram post
+magicClicker("Plus icon to create post")
+delay(2000)
+
+magicClicker("Gallery")
+delay(1500)
+
+magicClicker("First photo")
+delay(1000)
+
+magicClicker("Next button")
+delay(2000)
+
+// Step 4: Add caption (the tweet text)
+magicClicker("Write a caption field")
+delay(500)
+// Type: tweetText value
+
+magicClicker("Share button")
+delay(3000)
+
+speakText("Cross-post completed successfully")
+```
+
+### Add Error Handling
+
+Make workflows robust with validation:
+
+```javascript
+try {
+  // Extract from Twitter
+  const tweetText = magicScraper("What is the tweet text?")
+  
+  if (!tweetText || tweetText.includes("error")) {
+    throw new Error("Failed to extract tweet")
+  }
+  
+  // Post to Instagram
+  magicClicker("Create post")
+  delay(2000)
+  
+  // Verify post screen opened
+  const isPostScreen = magicScraper("Is this the create post screen?")
+  if (!isPostScreen.toLowerCase().includes("yes")) {
+    throw new Error("Failed to open post screen")
+  }
+  
+  speakText("Workflow completed")
+  
+} catch (error) {
+  speakText("Workflow error: " + error.message)
+}
+```
+
+</Steps>
+
+## Common Multi-App Patterns
+
+### Data Extraction and Transfer
+
+Extract information from one app and use it in another:
+
+```javascript
+// Extract verification code from email
+magicClicker("Gmail app")
+delay(2000)
+
+magicClicker("Latest email")
+delay(1500)
+
+const verificationCode = magicScraper("What is the 6-digit verification code?")
+speakText("Code is: " + verificationCode)
+
+// Navigate to app that needs the code
+magicClicker("Home button")
+delay(1000)
+
+magicClicker("Instagram app")
+delay(2000)
+
+magicClicker("Verification code field")
+delay(500)
+// Type: verificationCode
+
+magicClicker("Verify button")
+delay(2000)
+
+speakText("Verification completed")
+```
+
+### Content Aggregation
+
+Collect data from multiple sources:
+
+```javascript
+const aggregateContent = async () => {
+  const sources = []
+  
+  // Collect from Twitter
+  magicClicker("Twitter app")
+  delay(2000)
+  const tweet = magicScraper("What is the top trending topic?")
+  sources.push({ platform: "Twitter", content: tweet })
+  
+  // Collect from Reddit
+  magicClicker("Home button")
+  delay(1000)
+  magicClicker("Reddit app")
+  delay(2000)
+  const post = magicScraper("What is the top post title?")
+  sources.push({ platform: "Reddit", content: post })
+  
+  // Collect from News app
+  magicClicker("Home button")
+  delay(1000)
+  magicClicker("News app")
+  delay(2000)
+  const headline = magicScraper("What is the main headline?")
+  sources.push({ platform: "News", content: headline })
+  
+  // Compile summary
+  let summary = "Daily digest:\n"
+  sources.forEach(source => {
+    summary += `${source.platform}: ${source.content}\n`
+  })
+  
+  speakText("Aggregation complete")
+  return summary
+}
+```
+
+### Conditional Routing
+
+Route to different apps based on conditions:
+
+```javascript
+// Check notification type and route accordingly
+magicClicker("Notifications")
+delay(1500)
+
+const notificationType = magicScraper("What app is the notification from?")
+
+if (notificationType.includes("Instagram")) {
+  speakText("Opening Instagram")
+  magicClicker("Instagram notification")
+  delay(2000)
+  // Handle Instagram notification
+  
+} else if (notificationType.includes("Email")) {
+  speakText("Opening Gmail")
+  magicClicker("Gmail notification")
+  delay(2000)
+  // Handle email
+  
+} else if (notificationType.includes("Message")) {
+  speakText("Opening Messages")
+  magicClicker("Message notification")
+  delay(2000)
+  // Handle text message
+  
+} else {
+  speakText("Unknown notification type")
+}
+```
+
+### Loop Across Apps
+
+Repeat actions in multiple apps:
+
+```javascript
+const apps = [
+  { name: "Twitter", action: "Like first post" },
+  { name: "Instagram", action: "Like first post" },
+  { name: "Facebook", action: "React to first post" }
+]
+
+for (const app of apps) {
+  speakText(`Opening ${app.name}`)
+  
+  // Open app
+  magicClicker("Home button")
+  delay(1000)
+  magicClicker(`${app.name} app icon`)
+  delay(3000)
+  
+  // Perform action
+  magicClicker("Like or heart icon")
+  delay(1500)
+  
+  speakText(`Completed ${app.action} in ${app.name}`)
+}
+
+speakText("All apps processed")
+```
+
+## Real-World Multi-App Examples
+
+### Instagram Account Creation with Email 2FA
+
+Automated account creation shown in PhoneClaw demos:
+
+```javascript
+speakText("Creating Instagram account with email verification")
+
+// Step 1: Start account creation
+magicClicker("Create new account button")
+delay(2000)
+
+magicClicker("Email field")
+delay(500)
+// Type email address
+
+magicClicker("Next button")
+delay(3000)
+
+speakText("Waiting for verification email")
+
+// Step 2: Switch to Gmail to get code
+magicClicker("Home button")
+delay(1000)
+
+magicClicker("Gmail app")
+delay(3000)
+
+speakText("Checking email")
+
+magicClicker("Refresh emails")
+delay(2000)
+
+magicClicker("Instagram verification email")
+delay(1500)
+
+// Step 3: Extract verification code
+const code = magicScraper("What is the 6-digit Instagram verification code?")
+speakText(`Code received: ${code}`)
+
+// Step 4: Switch back to Instagram
+magicClicker("Home button")
+delay(1000)
+
+magicClicker("Instagram app")
+delay(2000)
+
+// Step 5: Enter code
+magicClicker("Verification code field")
+delay(500)
+// Type: code
+
+magicClicker("Verify button")
+delay(3000)
+
+// Step 6: Complete profile
+magicClicker("Username field")
+delay(500)
+// Type username
+
+magicClicker("Next button")
+delay(2000)
+
+magicClicker("Complete setup button")
+delay(3000)
+
+speakText("Instagram account created successfully")
+```
+
+### TikTok Video Upload with Music
+
+Automated video posting from PhoneClaw demos:
+
+```javascript
+speakText("Uploading TikTok video with music")
+
+// Step 1: Open TikTok
+magicClicker("TikTok app icon")
+delay(3000)
+
+// Step 2: Start upload
+magicClicker("Plus icon to create")
+delay(2000)
+
+magicClicker("Upload from gallery")
+delay(1500)
+
+// Step 3: Select video from gallery
+magicClicker("First video in gallery")
+delay(1000)
+
+magicClicker("Next button")
+delay(3000)
+
+// Step 4: Add music
+magicClicker("Add sound or music button")
+delay(2000)
+
+magicClicker("Search for songs")
+delay(500)
+// Type: "Popular Song Name"
+
+magicClicker("First song result")
+delay(1500)
+
+magicClicker("Use this sound button")
+delay(2000)
+
+// Step 5: Add caption
+magicClicker("Add caption field")
+delay(500)
+// Type: "Check this out! #fyp"
+
+// Step 6: Post
+magicClicker("Post button")
+delay(5000)
+
+const posted = magicScraper("Was the video posted successfully?")
+if (posted.toLowerCase().includes("yes")) {
+  speakText("TikTok video uploaded successfully")
+} else {
+  speakText("Upload may have failed")
+}
+```
+
+### Captcha Solving Workflow
+
+Vision-based captcha solving:
+
+```javascript
+speakText("Solving captcha")
+
+// Step 1: Identify captcha type
+const captchaType = magicScraper("What type of captcha is shown?")
+speakText(`Detected: ${captchaType}`)
+
+if (captchaType.includes("text")) {
+  // Text-based captcha
+  const captchaText = magicScraper("What text characters are shown in the captcha?")
+  speakText(`Captcha text: ${captchaText}`)
+  
+  magicClicker("Captcha input field")
+  delay(500)
+  // Type: captchaText
+  
+} else if (captchaType.includes("image")) {
+  // Image selection captcha
+  const instruction = magicScraper("What object should be selected in the captcha?")
+  speakText(`Looking for: ${instruction}`)
+  
+  // Click matching images
+  magicClicker(`Image containing ${instruction}`)
+  delay(500)
+  magicClicker(`Another image with ${instruction}`)
+  delay(500)
+}
+
+magicClicker("Submit or verify button")
+delay(2000)
+
+const success = magicScraper("Did the captcha verification succeed?")
+if (success.toLowerCase().includes("yes")) {
+  speakText("Captcha solved successfully")
+} else {
+  speakText("Captcha verification failed")
+}
+```
+
+## Advanced Techniques
+
+### State Management
+
+Track workflow state across apps:
+
+```javascript
+const workflowState = {
+  currentApp: null,
+  extractedData: {},
+  completedSteps: [],
+  errors: []
+}
+
+const updateState = (step, data) => {
+  workflowState.completedSteps.push(step)
+  if (data) {
+    workflowState.extractedData[step] = data
+  }
+  speakText(`Completed: ${step}`)
+}
+
+try {
+  // Step 1
+  magicClicker("Open Twitter")
+  delay(2000)
+  workflowState.currentApp = "Twitter"
+  updateState("openTwitter")
+  
+  // Step 2
+  const tweet = magicScraper("Get tweet text")
+  updateState("extractTweet", tweet)
+  
+  // Step 3
+  magicClicker("Open Instagram")
+  delay(2000)
+  workflowState.currentApp = "Instagram"
+  updateState("openInstagram")
+  
+  // Continue workflow...
+  
+} catch (error) {
+  workflowState.errors.push({
+    step: workflowState.completedSteps.length,
+    app: workflowState.currentApp,
+    error: error.message
+  })
+  speakText("Workflow error occurred")
+}
+```
+
+### App Launch Helpers
+
+Create reusable functions for common operations:
+
+```javascript
+const openApp = (appName) => {
+  speakText(`Opening ${appName}`)
+  magicClicker("Home button")
+  delay(1000)
+  magicClicker(`${appName} app icon`)
+  delay(3000)
+  
+  // Verify app opened
+  const opened = magicScraper(`Is ${appName} currently open?`)
+  if (!opened.toLowerCase().includes("yes")) {
+    throw new Error(`Failed to open ${appName}`)
+  }
+}
+
+const closeApp = () => {
+  magicClicker("Home button")
+  delay(500)
+}
+
+const switchToApp = (fromApp, toApp) => {
+  speakText(`Switching from ${fromApp} to ${toApp}`)
+  closeApp()
+  openApp(toApp)
+}
+
+// Usage
+openApp("Twitter")
+// Do Twitter things
+switchToApp("Twitter", "Instagram")
+// Do Instagram things
+closeApp()
+```
+
+### Parallel Data Collection
+
+Collect data from multiple apps efficiently:
+
+```javascript
+const collectFromApp = (appName, query) => {
+  try {
+    magicClicker("Home button")
+    delay(1000)
+    magicClicker(`${appName} app`)
+    delay(2500)
+    
+    const data = magicScraper(query)
+    return { app: appName, data, success: true }
+  } catch (error) {
+    return { app: appName, data: null, success: false, error }
+  }
+}
+
+const apps = [
+  { name: "Twitter", query: "What is trending?" },
+  { name: "Reddit", query: "What is the top post?" },
+  { name: "News", query: "What is the main headline?" }
+]
+
+const results = []
+for (const app of apps) {
+  const result = collectFromApp(app.name, app.query)
+  results.push(result)
+  speakText(`Collected from ${app.name}`)
+}
+
+// Compile results
+const successful = results.filter(r => r.success)
+speakText(`Collected data from ${successful.length} apps`)
+```
+
+## Timing and Synchronization
+
+### App Launch Delays
+
+Different apps require different launch times:
+
+```javascript
+const appTimings = {
+  "Gmail": 3000,      // Heavy app, needs more time
+  "Instagram": 3500,  // Complex UI, slower load
+  "Twitter": 2500,    // Medium weight
+  "Messages": 1500,   // Lightweight
+  "Settings": 1000    // System app, fast
+}
+
+const openAppWithTiming = (appName) => {
+  magicClicker("Home button")
+  delay(1000)
+  magicClicker(`${appName} app`)
+  
+  const timing = appTimings[appName] || 2000
+  delay(timing)
+  
+  speakText(`${appName} should be ready`)
+}
+```
+
+### Wait for Element
+
+Poll until an element appears:
+
+```javascript
+const waitForElement = (description, maxAttempts = 10) => {
+  for (let i = 0; i < maxAttempts; i++) {
+    const found = magicScraper(`Is ${description} visible?`)
+    if (found.toLowerCase().includes("yes")) {
+      return true
+    }
+    delay(1000)
+  }
+  return false
+}
+
+// Usage
+magicClicker("Submit form")
+delay(1000)
+
+if (waitForElement("success message")) {
+  speakText("Form submitted successfully")
+} else {
+  speakText("Timeout waiting for confirmation")
+}
+```
+
+## Best Practices
+
+### Always Add Delays
+
+<CodeGroup>
+```javascript ❌ Too Fast
+magicClicker("App 1")
+magicClicker("App 2")
+magicClicker("Button")
+```
+
+```javascript ✅ Proper Timing
+magicClicker("App 1")
+delay(3000)
+magicClicker("App 2")
+delay(2500)
+magicClicker("Button")
+delay(1000)
+```
+</CodeGroup>
+
+### Validate Each Step
+
+```javascript
+// Bad: Assume everything worked
+magicClicker("Login")
+magicClicker("Submit")
+
+// Good: Verify each step
+magicClicker("Login")
+delay(2000)
+const isLoginScreen = magicScraper("Is this the login screen?")
+if (isLoginScreen.includes("yes")) {
+  magicClicker("Submit")
+} else {
+  throw new Error("Login screen not found")
+}
+```
+
+### Use Descriptive Variables
+
+<CodeGroup>
+```javascript ❌ Unclear
+const x = magicScraper("text?")
+const y = magicScraper("code?")
+```
+
+```javascript ✅ Descriptive
+const emailVerificationCode = magicScraper("What is the 6-digit email code?")
+const instagramUsername = magicScraper("What username is shown?")
+```
+</CodeGroup>
+
+### Handle App Not Found
+
+```javascript
+const safeOpenApp = (appName) => {
+  try {
+    magicClicker("Home button")
+    delay(1000)
+    
+    magicClicker(`${appName} app icon`)
+    delay(3000)
+    
+    const opened = magicScraper(`Is ${appName} open?`)
+    if (!opened.toLowerCase().includes("yes")) {
+      throw new Error("App didn't open")
+    }
+    
+    return true
+  } catch (error) {
+    speakText(`Failed to open ${appName}: ${error.message}`)
+    return false
+  }
+}
+```
+
+## Troubleshooting
+
+### App Switch Fails
+
+- Increase delay after home button press
+- Use app drawer instead of home screen icons
+- Verify app name matches icon text exactly
+- Try describing icon color/position
+
+### Data Not Extracted
+
+- Make query more specific
+- Wait longer for content to load
+- Check if element is scrolled out of view
+- Verify text is visible (not hidden behind overlay)
+
+### Actions Out of Sync
+
+- Increase all delays by 500-1000ms
+- Add validation checks between steps
+- Test on slower device first
+- Use `waitForElement` pattern
+
+### Memory Issues
+
+- Close apps when no longer needed
+- Avoid keeping too many apps in memory
+- Clear app cache before long workflows
+- Restart device periodically for long-running schedules
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="ClawScript API Reference" href="/api-reference/clawscript-functions" icon="code">
+    Complete function documentation
+  </Card>
+  <Card title="Schedule Workflows" href="/guides/scheduling-tasks" icon="clock">
+    Run multi-app workflows on a schedule
+  </Card>
+  <Card title="Voice Generation" href="/guides/voice-commands" icon="microphone">
+    Generate multi-app workflows with voice
+  </Card>
+</CardGroup>

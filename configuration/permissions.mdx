@@ -1,0 +1,348 @@
+---
+title: Android Permissions
+description: Required Android permissions for PhoneClaw's automation and accessibility features
+---
+
+PhoneClaw requires several Android permissions to function properly. This guide explains each permission, why it's needed, and how to grant it.
+
+## Critical Permissions
+
+These permissions are essential for PhoneClaw's core functionality:
+
+### Accessibility Service
+
+**Purpose**: Allows PhoneClaw to interact with screen elements, simulate taps, and automate UI interactions.
+
+**How to Enable**:
+1. Open Android Settings
+2. Navigate to Accessibility
+3. Find "PhoneClaw" or your app name
+4. Toggle the accessibility service ON
+5. Confirm the permission prompt
+
+<Warning>
+**This is the most critical permission.** Without accessibility access, PhoneClaw cannot automate any tasks or interact with other apps.
+</Warning>
+
+The accessibility service is declared in `AndroidManifest.xml:89-104`:
+
+```xml
+<service
+    android:name="com.example.universal.MyAccessibilityService"
+    android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
+    android:label="@string/app_name"
+    android:enabled="true"
+    android:foregroundServiceType="mediaProjection"
+    android:exported="true">
+    <intent-filter>
+        <action android:name="android.accessibilityservice.AccessibilityService" />
+    </intent-filter>
+</service>
+```
+
+### Screen Capture / Media Projection
+
+**Purpose**: Enables PhoneClaw to capture screenshots for visual AI analysis and debugging.
+
+**Required For**:
+- Moondream visual element detection
+- Debug mode screenshot uploads
+- Screen context for AI generation
+
+**How to Enable**:
+- PhoneClaw will prompt for screen capture permission on first launch
+- Grant permission in the system dialog
+- This permission is requested at runtime
+
+Declared as:
+```xml
+<uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
+<uses-permission android:name="android.permission.CAPTURE_VIDEO_OUTPUT" />
+```
+
+## Voice & Audio Permissions
+
+### Microphone (RECORD_AUDIO)
+
+**Purpose**: Enables voice commands and push-to-talk functionality.
+
+**How to Enable**:
+- PhoneClaw requests this permission at runtime
+- Grant permission when prompted
+- Required for speech recognition
+
+From `AndroidManifest.xml:21`:
+```xml
+<uses-permission android:name="android.permission.RECORD_AUDIO" />
+<uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+```
+
+**Usage in App**:
+- Push-to-talk button (MainActivity.kt:1096-1126)
+- Continuous voice listening
+- Speech-to-text processing
+
+<Note>
+The app uses Android's built-in SpeechRecognizer, which handles voice processing on-device when possible.
+</Note>
+
+## Location Permissions
+
+### Fine & Coarse Location
+
+**Purpose**: 
+- WiFi network scanning (required for programmatic WiFi connections)
+- Device location tracking for phone info
+- Geolocation features
+
+From `AndroidManifest.xml:17-18`:
+```xml
+<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+```
+
+**How to Enable**:
+- Requested at runtime when needed
+- Go to Settings > Apps > PhoneClaw > Permissions > Location
+- Select "Allow all the time" or "Allow only while using the app"
+
+<Warning>
+Location permissions are required for WiFi network operations on Android 10+, even if you're not using location features. This is an Android system requirement.
+</Warning>
+
+**Code Reference**: MainActivity.kt:500-512
+
+## Network Permissions
+
+### Internet & Network State
+
+From `AndroidManifest.xml:8-10`:
+```xml
+<uses-permission android:name="android.permission.INTERNET" />
+<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+<uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
+```
+
+**Purpose**:
+- OpenRouter API communication
+- Firebase cloud features
+- Moondream API requests
+- WiFi network management
+
+**Auto-Granted**: These are normal permissions automatically granted at install time.
+
+### WiFi Permissions
+
+From `AndroidManifest.xml:13-15`:
+```xml
+<uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+<uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+<uses-permission android:name="android.permission.NEARBY_WIFI_DEVICES" />
+```
+
+**Purpose**:
+- Programmatic WiFi connections
+- Network scanning
+- Nearby device detection
+
+## Optional Permissions
+
+These permissions enable additional features but aren't required for core functionality:
+
+### Phone & SMS
+
+```xml
+<uses-permission android:name="android.permission.CALL_PHONE" />
+<uses-permission android:name="android.permission.SEND_SMS" />
+```
+
+**Purpose**: Automation of phone calls and SMS messaging
+**When to Grant**: Only if you plan to automate phone/SMS tasks
+
+### Camera
+
+```xml
+<uses-permission android:name="android.permission.CAMERA" />
+```
+
+**Purpose**: Camera control automation
+**When to Grant**: Only if automating camera operations
+
+### Storage
+
+```xml
+<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+```
+
+**Purpose**: File management, screenshot saving, downloads
+**Note**: On Android 10+ (API 29+), scoped storage is used by default
+
+### Bluetooth
+
+```xml
+<uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
+```
+
+**Purpose**: Bluetooth device control automation
+
+### Notification Access
+
+```xml
+<uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />
+```
+
+**Purpose**: DND mode control, notification management
+
+## Granting Permissions
+
+### First Launch
+
+On first launch, PhoneClaw will guide you through:
+
+1. **Screen Capture Permission** - Immediate prompt
+2. **Accessibility Service** - Redirects to Settings
+3. **Microphone Permission** - When tapping voice button
+4. **Location Permission** - If using WiFi features
+
+### Manual Permission Management
+
+**Via Android Settings**:
+1. Open Settings
+2. Go to Apps > PhoneClaw
+3. Tap Permissions
+4. Enable required permissions
+
+**Via ADB (for developers)**:
+```bash
+# Grant all permissions at once
+adb shell pm grant com.example.universal android.permission.RECORD_AUDIO
+adb shell pm grant com.example.universal android.permission.ACCESS_FINE_LOCATION
+adb shell pm grant com.example.universal android.permission.ACCESS_COARSE_LOCATION
+adb shell pm grant com.example.universal android.permission.CAMERA
+adb shell pm grant com.example.universal android.permission.CALL_PHONE
+adb shell pm grant com.example.universal android.permission.SEND_SMS
+```
+
+<Note>
+Some permissions like BIND_ACCESSIBILITY_SERVICE cannot be granted via ADB and must be enabled through Settings.
+</Note>
+
+## Permission Request Flow
+
+PhoneClaw handles permission requests gracefully:
+
+1. **Check if permission is granted** (MainActivity.kt:1085-1093)
+2. **Request permission if needed** (MainActivity.kt:1091)
+3. **Handle permission result** (MainActivity.kt:1003-1007)
+4. **Provide feedback** via Text-to-Speech
+
+```kotlin
+private companion object {
+    const val MICROPHONE_PERMISSION_REQUEST = 1001
+    const val SETTINGS_REQUEST_CODE = 1002
+    const val LOCATION_PERMISSION_REQUEST = 1003
+}
+```
+
+## Troubleshooting
+
+### Accessibility Service Won't Enable
+
+1. Try restarting your device
+2. Clear app cache and data
+3. Reinstall PhoneClaw
+4. Check for Android system updates
+
+### Screen Capture Not Working
+
+1. Verify media projection permission is granted
+2. Ensure no other screen recording app is active
+3. Check ScreenCaptureService is running
+4. Review logs for errors
+
+### Microphone Permission Denied
+
+1. Go to Settings > Apps > PhoneClaw > Permissions
+2. Manually enable Microphone permission
+3. Restart the app
+
+### Location Permission Issues
+
+<Warning>
+On Android 10+, you may need to grant "Allow all the time" for background WiFi operations.
+</Warning>
+
+1. Settings > Apps > PhoneClaw > Permissions > Location
+2. Select "Allow all the time" or "Allow only while using the app"
+3. Some features may require "Allow all the time"
+
+## Security & Privacy
+
+PhoneClaw requests extensive permissions for automation purposes. Here's what you should know:
+
+- **Local Processing**: Voice recognition runs on-device when possible
+- **Screen Captures**: Only uploaded to Firebase if debug mode is enabled
+- **Location Data**: Used for device tracking in Firebase (optional)
+- **Open Source**: Review the source code to verify permission usage
+
+<Note>
+You can disable Firebase features entirely and use PhoneClaw in offline mode with local automation only.
+</Note>
+
+## Complete Permission List
+
+Here's the full list from AndroidManifest.xml:
+
+```xml
+<!-- Network -->
+INTERNET
+ACCESS_NETWORK_STATE
+CHANGE_NETWORK_STATE
+
+<!-- WiFi -->
+ACCESS_WIFI_STATE
+CHANGE_WIFI_STATE
+NEARBY_WIFI_DEVICES
+ACCESS_FINE_LOCATION
+ACCESS_COARSE_LOCATION
+
+<!-- Audio -->
+RECORD_AUDIO
+FOREGROUND_SERVICE
+FOREGROUND_SERVICE_MICROPHONE
+FOREGROUND_SERVICE_MEDIA_PROJECTION
+
+<!-- Screen Capture -->
+CAPTURE_VIDEO_OUTPUT
+
+<!-- App Control -->
+CALL_PHONE
+SEND_SMS
+CAMERA
+ACCESS_NOTIFICATION_POLICY
+BLUETOOTH_ADMIN
+VIBRATE
+KILL_BACKGROUND_PROCESSES
+BATTERY_STATS
+WAKE_LOCK
+QUERY_ALL_PACKAGES
+
+<!-- Storage -->
+WRITE_EXTERNAL_STORAGE
+READ_EXTERNAL_STORAGE
+
+<!-- Installation -->
+REQUEST_INSTALL_PACKAGES
+INSTALL_PACKAGES
+
+<!-- System -->
+WRITE_SETTINGS
+```
+
+## Next Steps
+
+- [Configure API Keys](/configuration/api-keys)
+- [Set Up AI Models](/configuration/models)
+- [Learn About Voice Commands](/guides/voice-commands)
+- [Troubleshooting Common Issues](/troubleshooting/common-issues)

@@ -1,0 +1,278 @@
+---
+title: 'Captcha Solving'
+description: 'Automate captcha solving using PhoneClaw vision capabilities'
+---
+
+## Overview
+
+PhoneClaw can automate captcha solving using its vision-assisted UI targeting and screen understanding capabilities. Watch the [captcha automation demo](https://www.youtube.com/watch?v=aBgbr27fR5M) to see it in action.
+
+## How It Works
+
+PhoneClaw uses the `magicClicker` and `magicScraper` functions to:
+- Identify captcha elements on screen
+- Read captcha text or identify images
+- Click correct answers or input solutions
+- Verify successful completion
+
+## Basic Captcha Solving
+
+<Steps>
+  <Step title="Detect Captcha">
+    Use `magicScraper` to identify if a captcha is present.
+    
+    ```js
+    const captchaPresent = magicScraper("Is there a captcha verification on screen?")
+    
+    if (captchaPresent.includes("yes") || captchaPresent.includes("captcha")) {
+      speakText("Captcha detected, solving now")
+    }
+    ```
+  </Step>
+  
+  <Step title="Read Captcha Content">
+    Extract the captcha challenge using vision.
+    
+    ```js
+    const challenge = magicScraper("What is the captcha asking?")
+    speakText(`Challenge: ${challenge}`)
+    ```
+  </Step>
+  
+  <Step title="Solve and Submit">
+    Click the correct answer or input the solution.
+    
+    ```js
+    magicClicker("The correct captcha answer")
+    delay(1000)
+    magicClicker("Submit button")
+    delay(2000)
+    ```
+  </Step>
+</Steps>
+
+## Text-Based Captcha Solving
+
+Solve simple text captchas that require reading and typing:
+
+```js
+// Solve text-based captcha
+const solveTextCaptcha = () => {
+  // Check if captcha is present
+  const hasCaptcha = magicScraper("Is there a text captcha on screen?")
+  
+  if (!hasCaptcha.includes("yes")) {
+    speakText("No captcha detected")
+    return
+  }
+  
+  // Read the captcha text
+  const captchaText = magicScraper("What text is shown in the captcha image?")
+  speakText(`Captcha text: ${captchaText}`)
+  
+  // Click input field
+  magicClicker("Captcha text input field")
+  delay(1000)
+  
+  // Type the captcha text (using your input method)
+  // typeText(captchaText)
+  
+  // Submit
+  magicClicker("Verify button")
+  delay(2000)
+  
+  // Verify success
+  const success = magicScraper("Does the screen show verification successful?")
+  
+  if (success.includes("yes") || success.includes("success")) {
+    speakText("Captcha solved successfully")
+    return true
+  } else {
+    speakText("Captcha failed, retrying")
+    return false
+  }
+}
+
+solveTextCaptcha()
+```
+
+## Image Selection Captcha
+
+Solve image-based captchas that require selecting specific images:
+
+```js
+// Solve image selection captcha
+const solveImageCaptcha = () => {
+  // Read the challenge
+  const challenge = magicScraper("What objects should be selected in the captcha?")
+  speakText(`Looking for: ${challenge}`)
+  
+  // Find and click matching images
+  const imageCount = safeInt(magicScraper("How many images are in the grid?"), 9)
+  
+  for (let i = 1; i <= imageCount; i++) {
+    const hasTarget = magicScraper(`Does image ${i} contain ${challenge}?`)
+    
+    if (hasTarget.includes("yes")) {
+      magicClicker(`Image number ${i} in the captcha grid`)
+      delay(500)
+      speakText(`Selected image ${i}`)
+    }
+  }
+  
+  // Submit selection
+  delay(1000)
+  magicClicker("Verify button")
+  delay(2000)
+  
+  speakText("Image captcha submitted")
+}
+
+solveImageCaptcha()
+```
+
+## ReCAPTCHA Automation
+
+Automate Google reCAPTCHA v2 checkboxes:
+
+```js
+// Handle reCAPTCHA checkbox
+const solveReCaptcha = () => {
+  speakText("Solving reCAPTCHA")
+  
+  // Click the "I'm not a robot" checkbox
+  magicClicker("I'm not a robot checkbox")
+  delay(3000)
+  
+  // Check if additional challenge appeared
+  const needsChallenge = magicScraper("Is there an image selection challenge visible?")
+  
+  if (needsChallenge.includes("yes")) {
+    speakText("Additional challenge detected")
+    
+    // Read the challenge type
+    const challengeType = magicScraper("Select all images with what object?")
+    speakText(`Challenge: ${challengeType}`)
+    
+    // Solve image challenge
+    solveImageCaptcha()
+  } else {
+    speakText("ReCAPTCHA passed without challenge")
+  }
+  
+  delay(2000)
+}
+
+solveReCaptcha()
+```
+
+## Retry Logic for Failed Attempts
+
+Implement retry logic for captchas that may fail:
+
+```js
+// Captcha solver with retry logic
+const solveCaptchaWithRetry = (maxAttempts = 3) => {
+  let attempts = 0
+  
+  while (attempts < maxAttempts) {
+    attempts++
+    speakText(`Captcha attempt ${attempts} of ${maxAttempts}`)
+    
+    // Try to solve the captcha
+    const success = solveTextCaptcha()
+    
+    if (success) {
+      speakText("Captcha solved successfully")
+      return true
+    }
+    
+    delay(2000)
+  }
+  
+  speakText("Failed to solve captcha after maximum attempts")
+  
+  // Send notification email
+  sendAgentEmail(
+    "admin@example.com",
+    "Captcha Solving Failed",
+    `Failed to solve captcha after ${maxAttempts} attempts. Manual intervention may be required.`
+  )
+  
+  return false
+}
+
+solveCaptchaWithRetry()
+```
+
+## Complete Workflow with Captcha Handling
+
+Integrate captcha solving into a larger automation workflow:
+
+```js
+// Complete workflow with captcha handling
+const automateWithCaptcha = () => {
+  // Navigate to target page
+  magicClicker("Browser app")
+  delay(2000)
+  
+  // Fill out form
+  magicClicker("Username field")
+  delay(1000)
+  // Type username...
+  
+  magicClicker("Password field")
+  delay(1000)
+  // Type password...
+  
+  // Submit form
+  magicClicker("Submit button")
+  delay(3000)
+  
+  // Check for captcha
+  const hasCaptcha = magicScraper("Is there a captcha on screen?")
+  
+  if (hasCaptcha.includes("yes")) {
+    speakText("Captcha detected, solving")
+    
+    const solved = solveCaptchaWithRetry(3)
+    
+    if (!solved) {
+      speakText("Cannot proceed, captcha failed")
+      return
+    }
+  }
+  
+  // Continue with workflow after captcha
+  delay(2000)
+  const loggedIn = magicScraper("Is the user logged in?")
+  
+  if (loggedIn.includes("yes")) {
+    speakText("Successfully logged in")
+    // Continue automation...
+  }
+}
+
+automateWithCaptcha()
+```
+
+## Best Practices
+
+- Always verify captcha solution before proceeding
+- Implement retry logic for failed attempts
+- Use appropriate delays to allow captchas to load
+- Test thoroughly as captcha layouts vary by site
+- Consider notifying admins when captchas consistently fail
+- Respect website terms of service and use automation responsibly
+
+## Limitations
+
+- Complex audio captchas may require additional handling
+- Some advanced captcha systems may be difficult to automate
+- Captcha providers may update their systems, requiring script adjustments
+- Rate limiting may apply to automated captcha attempts
+
+## See Also
+
+- [Account Creation Automation](/examples/account-creation)
+- [ClawScript API Reference](/api-reference/clawscript-api)

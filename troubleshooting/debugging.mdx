@@ -1,0 +1,463 @@
+---
+title: "Debugging Automations"
+description: "Learn how to debug and troubleshoot ClawScript automations effectively"
+---
+
+## Debugging Tools
+
+PhoneClaw provides several tools and techniques to help you debug your automation scripts and understand what's happening during execution.
+
+## Using speakText for Debugging
+
+The `speakText()` function is your primary debugging tool. It provides audio feedback about script execution and can help you understand where your automation is succeeding or failing.
+
+### Basic Debug Output
+
+```javascript
+speakText("Starting automation");
+
+await magicClicker("Login button");
+speakText("Clicked login button");
+
+await delay(2000);
+speakText("Waiting for page to load");
+
+const result = await magicScraper("Error message on screen");
+speakText("Scraper result: " + result);
+```
+
+### Variable Inspection
+
+```javascript
+const username = "testuser@example.com";
+speakText("Username is: " + username);
+
+const attempts = 3;
+speakText("Retry attempts: " + attempts);
+
+const isLoggedIn = true;
+speakText("Login status: " + (isLoggedIn ? "success" : "failed"));
+```
+
+### Checkpoint Debugging
+
+```javascript
+function checkpoint(message) {
+  speakText("Checkpoint: " + message);
+}
+
+checkpoint("Starting workflow");
+await magicClicker("Menu");
+
+checkpoint("Menu opened");
+await magicClicker("Settings");
+
+checkpoint("Settings opened");
+await magicClicker("Account");
+
+checkpoint("Workflow completed");
+```
+
+## Error Handling
+
+### Try-Catch Blocks
+
+Wrap potentially failing operations in try-catch blocks to gracefully handle errors:
+
+```javascript
+try {
+  await magicClicker("Submit button");
+  speakText("Button clicked successfully");
+} catch (error) {
+  speakText("Error clicking button: " + error);
+  // Fallback logic
+}
+```
+
+### Comprehensive Error Handling
+
+```javascript
+async function safeClick(elementDescription, maxRetries = 3) {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      speakText("Attempt " + (i + 1) + " to click: " + elementDescription);
+      await magicClicker(elementDescription);
+      speakText("Success!");
+      return true;
+    } catch (error) {
+      speakText("Attempt failed: " + error);
+      if (i < maxRetries - 1) {
+        await delay(2000);
+      }
+    }
+  }
+  speakText("All attempts failed for: " + elementDescription);
+  return false;
+}
+
+// Usage
+const success = await safeClick("Login button");
+if (!success) {
+  speakText("Stopping automation due to error");
+  return;
+}
+```
+
+## Debugging magicClicker
+
+### Test Element Visibility
+
+Before using magicClicker, verify the element is visible:
+
+```javascript
+// First, try to read information about the element
+const elementInfo = await magicScraper("Is there a blue login button visible?");
+speakText("Element check: " + elementInfo);
+
+// If confirmed visible, proceed with click
+if (elementInfo.includes("yes") || elementInfo.includes("visible")) {
+  await magicClicker("blue login button");
+} else {
+  speakText("Element not found, checking alternative");
+  await magicClicker("sign in button");
+}
+```
+
+### Progressive Description Refinement
+
+```javascript
+// Start broad, get more specific if needed
+const descriptions = [
+  "submit button",
+  "blue submit button",
+  "blue submit button at bottom",
+  "blue rectangular submit button at bottom right"
+];
+
+for (const desc of descriptions) {
+  try {
+    speakText("Trying: " + desc);
+    await magicClicker(desc);
+    speakText("Success with: " + desc);
+    break;
+  } catch (error) {
+    speakText("Failed with: " + desc);
+  }
+}
+```
+
+### Add Delays for UI Loading
+
+```javascript
+// Bad: No delay, UI might not be ready
+await magicClicker("Next button");
+await magicClicker("Submit button"); // Might fail
+
+// Good: Allow time for UI to load
+await magicClicker("Next button");
+speakText("Waiting for next page");
+await delay(2000);
+await magicClicker("Submit button"); // More likely to succeed
+```
+
+## Debugging magicScraper
+
+### Verify Scraped Content
+
+```javascript
+const scrapedText = await magicScraper("The verification code displayed");
+speakText("Scraped text: " + scrapedText);
+
+// Check if result is valid
+if (!scrapedText || scrapedText === "null" || scrapedText === "undefined") {
+  speakText("Warning: No text scraped, retrying");
+  await delay(1000);
+  scrapedText = await magicScraper("The verification code displayed");
+}
+```
+
+### Validate Scraped Data
+
+```javascript
+// Scrape and validate format
+const otpCode = await magicScraper("The 6-digit verification code");
+speakText("Scraped OTP: " + otpCode);
+
+// Validate it's actually 6 digits
+if (otpCode && /^\d{6}$/.test(otpCode)) {
+  speakText("Valid OTP code found");
+} else {
+  speakText("Invalid OTP format, expected 6 digits");
+  // Handle error
+}
+```
+
+### Question Refinement
+
+```javascript
+// Vague question
+const result1 = await magicScraper("What's the code?"); // Might fail
+
+// Specific question
+const result2 = await magicScraper("What is the 6-digit verification code shown in the SMS message?"); // Better
+
+speakText("Vague result: " + result1);
+speakText("Specific result: " + result2);
+```
+
+## Debugging Scheduled Tasks
+
+### Verify Schedule Creation
+
+```javascript
+const cronExpr = "0 */2 * * *"; // Every 2 hours
+speakText("Creating schedule with expression: " + cronExpr);
+
+try {
+  schedule("myAutomation", cronExpr);
+  speakText("Schedule created successfully");
+} catch (error) {
+  speakText("Failed to create schedule: " + error);
+}
+```
+
+### Test Schedule Timing
+
+Start with a short interval for testing:
+
+```javascript
+// For testing: Run every 2 minutes
+const testSchedule = "*/2 * * * *";
+speakText("Test schedule: every 2 minutes");
+schedule("test", testSchedule);
+
+// After testing: Switch to production schedule
+// const prodSchedule = "0 9 * * *"; // Daily at 9 AM
+```
+
+### Debugging Scheduled Script
+
+Add timestamp logging:
+
+```javascript
+function getTimestamp() {
+  return new Date().toISOString();
+}
+
+speakText("Scheduled task started at: " + getTimestamp());
+
+try {
+  // Your automation logic
+  await magicClicker("Refresh button");
+  speakText("Task completed at: " + getTimestamp());
+} catch (error) {
+  speakText("Task failed at: " + getTimestamp() + ", Error: " + error);
+}
+```
+
+## Common Debugging Patterns
+
+### State Machine Debugging
+
+```javascript
+const states = {
+  START: "start",
+  LOGGED_IN: "logged_in",
+  FORM_FILLED: "form_filled",
+  SUBMITTED: "submitted",
+  COMPLETE: "complete"
+};
+
+let currentState = states.START;
+
+function setState(newState) {
+  speakText("State change: " + currentState + " to " + newState);
+  currentState = newState;
+}
+
+setState(states.START);
+await magicClicker("Login");
+setState(states.LOGGED_IN);
+
+await magicClicker("Form field");
+setState(states.FORM_FILLED);
+
+await magicClicker("Submit");
+setState(states.SUBMITTED);
+
+speakText("Final state: " + currentState);
+```
+
+### Conditional Debugging
+
+```javascript
+const DEBUG = true; // Set to false to disable debug output
+
+function debug(message) {
+  if (DEBUG) {
+    speakText("[DEBUG] " + message);
+  }
+}
+
+debug("Starting automation");
+await magicClicker("Button");
+debug("Button clicked");
+await delay(1000);
+debug("Delay complete");
+```
+
+### Performance Timing
+
+```javascript
+let startTime = Date.now();
+
+function logTime(label) {
+  const elapsed = Date.now() - startTime;
+  speakText(label + ": " + elapsed + " milliseconds");
+}
+
+logTime("Start");
+await magicClicker("Button1");
+logTime("After button 1");
+
+await delay(2000);
+logTime("After delay");
+
+await magicClicker("Button2");
+logTime("After button 2");
+
+logTime("Total time");
+```
+
+## Testing Strategies
+
+### Incremental Testing
+
+<Steps>
+  <Step title="Test Single Action">
+    Start by testing just one action:
+    ```javascript
+    await magicClicker("Login button");
+    speakText("Single action test complete");
+    ```
+  </Step>
+  <Step title="Add Second Action">
+    Once first action works, add the next:
+    ```javascript
+    await magicClicker("Login button");
+    await delay(2000);
+    await magicClicker("Email field");
+    speakText("Two actions test complete");
+    ```
+  </Step>
+  <Step title="Build Complete Flow">
+    Continue adding actions one at a time until the full automation works.
+  </Step>
+</Steps>
+
+### Isolation Testing
+
+Test problematic sections in isolation:
+
+```javascript
+// Comment out everything except the problem section
+
+// speakText("Starting full automation");
+// await magicClicker("Menu");
+// await delay(1000);
+
+// Test just the problematic part
+speakText("Testing problem section");
+const result = await magicScraper("Error message text");
+speakText("Result: " + result);
+
+// await magicClicker("Submit");
+// speakText("Complete");
+```
+
+## Android Debug Bridge (ADB)
+
+For advanced debugging, use ADB to view system logs:
+
+### View Logcat Output
+
+```bash
+# View all PhoneClaw logs
+adb logcat | grep PhoneClaw
+
+# Filter for errors only
+adb logcat *:E | grep PhoneClaw
+
+# Save logs to file
+adb logcat -d > phoneclaw_logs.txt
+```
+
+### Clear Logs and Reproduce
+
+```bash
+# Clear existing logs
+adb logcat -c
+
+# Run your automation in PhoneClaw
+
+# View new logs
+adb logcat -d > debug_logs.txt
+```
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Start Simple" icon="seedling">
+    Begin with simple automations and add complexity gradually.
+  </Card>
+  <Card title="Add Logging" icon="file-text">
+    Use speakText liberally to track execution flow and variable values.
+  </Card>
+  <Card title="Handle Errors" icon="shield">
+    Wrap risky operations in try-catch blocks with fallback logic.
+  </Card>
+  <Card title="Test Incrementally" icon="stairs">
+    Test each new addition before moving to the next step.
+  </Card>
+  <Card title="Use Delays" icon="clock">
+    Add sufficient delays for UI loading and transitions.
+  </Card>
+  <Card title="Be Specific" icon="bullseye">
+    Use detailed descriptions for magicClicker and magicScraper.
+  </Card>
+</CardGroup>
+
+## Getting Help
+
+If you're still stuck after debugging:
+
+<CardGroup cols={2}>
+  <Card
+    title="Common Issues"
+    icon="list"
+    href="/troubleshooting/common-issues"
+  >
+    Check if your issue is already documented
+  </Card>
+  <Card
+    title="FAQ"
+    icon="circle-question"
+    href="/troubleshooting/faq"
+  >
+    Review frequently asked questions
+  </Card>
+  <Card
+    title="Discord Community"
+    icon="discord"
+    href="https://discord.gg/n9nbZUrw"
+  >
+    Ask for help from experienced users
+  </Card>
+  <Card
+    title="GitHub Issues"
+    icon="github"
+    href="https://github.com/rohanarun/phoneclaw/issues"
+  >
+    Report bugs with your debug logs
+  </Card>
+</CardGroup>

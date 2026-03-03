@@ -1,0 +1,294 @@
+---
+title: "magicScraper"
+description: "Extract text and data from screen using natural language queries with vision AI"
+---
+
+## Overview
+
+`magicScraper()` is a vision-based data extraction function that reads information from your screen using natural language queries. It leverages OpenRouter's vision models to analyze screenshots and return specific information.
+
+## Function Signature
+
+```kotlin
+fun magicScraper(description: String): String
+```
+
+## Parameters
+
+<ParamField path="description" type="String" required>
+  Natural language question or description of what data you want to extract from the screen.
+  
+  **Examples:**
+  - "What is the battery percentage?"
+  - "Read the notification count"
+  - "What time is displayed?"
+  - "Extract the email address shown"
+  - "What is the WiFi network name?"
+</ParamField>
+
+## Return Value
+
+<ResponseField name="result" type="String">
+  The extracted text or data from the screen. Returns an error message if extraction fails.
+  
+  **Success Examples:**
+  - "85%" (for battery query)
+  - "3:45 PM" (for time query)
+  - "MyWiFi-Network" (for WiFi name)
+  
+  **Error Examples:**
+  - "Error: No screenshot"
+  - "Error: Activity destroyed"
+  - "Error: Operation cancelled"
+</ResponseField>
+
+## How It Works
+
+1. **Screenshot Capture**: Takes a screenshot of the current screen
+2. **Image Encoding**: Converts screenshot to base64 JPEG format
+3. **Vision AI Query**: Sends image and question to OpenRouter's vision model
+4. **Text Extraction**: AI analyzes the image and returns the requested information
+5. **Result Formatting**: Cleans and formats the response for easy use
+
+## Code Examples
+
+### Basic Data Extraction
+
+```javascript
+// Get battery level
+var battery = Android.magicScraper("What is the battery percentage?");
+console.log("Battery: " + battery);
+
+// Read current time
+var time = Android.magicScraper("What time is shown in the status bar?");
+console.log("Time: " + time);
+
+// Get WiFi network name
+var wifi = Android.magicScraper("What WiFi network am I connected to?");
+console.log("WiFi: " + wifi);
+```
+
+### Screen Content Analysis
+
+```javascript
+// Extract all visible text
+var content = Android.magicScraper("What text is visible on this screen?");
+console.log(content);
+
+// Count notifications
+var count = Android.magicScraper("How many notifications are shown?");
+console.log("You have " + count + " notifications");
+
+// Identify current app
+var appName = Android.magicScraper("What app is currently open?");
+console.log("Current app: " + appName);
+```
+
+### Conditional Automation
+
+```javascript
+// Check battery before starting intensive task
+var battery = Android.magicScraper("battery percentage");
+var batteryNum = parseInt(battery);
+
+if (batteryNum < 20) {
+    Android.speakText("Battery too low, charging required");
+} else {
+    // Continue with automation
+    Android.magicClicker("Start process button");
+}
+```
+
+### Form Data Extraction
+
+```javascript
+// Extract form field values
+var email = Android.magicScraper("What email address is in the email field?");
+var username = Android.magicScraper("What is the username shown?");
+
+console.log("Email: " + email);
+console.log("Username: " + username);
+```
+
+## Vision AI Integration
+
+### OpenRouter Streaming API
+
+The function uses OpenRouter's vision-capable models:
+
+**Default Model**: Selected via app settings (Gemini 2.0 Flash or Llama 4 Maverick)
+
+**Request Format**:
+```json
+{
+  "model": "google/gemini-2.0-flash-001",
+  "messages": [
+    {
+      "role": "system",
+      "content": "You are a helpful assistant that analyzes screenshots and answers questions. Be concise and direct."
+    },
+    {
+      "role": "user",
+      "content": "<question>\ndata:image/jpeg;base64,<image>"
+    }
+  ],
+  "max_tokens": 150
+}
+```
+
+### Response Processing
+
+The AI response is processed through `callStreamingAPIWithImage()` which:
+
+1. Sends image as data URL in message content
+2. Uses system prompt to ensure concise responses
+3. Limits response to 150 tokens for efficiency
+4. Returns trimmed result string
+
+## Best Practices
+
+<Tip>
+  **Ask Specific Questions**: The more specific your query, the more accurate the extraction.
+  
+  **Good**: "What is the battery percentage in the status bar?"
+  
+  **Better**: "battery percentage"
+</Tip>
+
+<Warning>
+  **Check for Empty Results**: Always validate the returned data before using it in automation logic.
+</Warning>
+
+### Query Optimization
+
+**Efficient queries:**
+- "battery percentage" → "75%"
+- "time in status bar" → "2:45 PM"
+- "notification count" → "5"
+
+**Less efficient:**
+- "Tell me everything about the battery" → Long response
+- "What do you see on screen?" → Too broad
+
+## Error Handling
+
+```javascript
+var result = Android.magicScraper("battery level");
+
+// Check for errors
+if (result.startsWith("Error:")) {
+    console.log("Scraping failed: " + result);
+    // Handle error case
+} else {
+    console.log("Battery: " + result);
+    // Use the data
+}
+```
+
+### Common Error Messages
+
+- **"Error: Activity destroyed"**: App is no longer active
+- **"Error: No screenshot"**: Screenshot capture failed
+- **"Error: Operation cancelled"**: Request was cancelled or timed out
+- **"Error: [message]"**: General exception occurred
+
+## Performance Considerations
+
+<Tip>
+  **Timeout**: Operations have a 30-second timeout. Complex queries may take longer.
+</Tip>
+
+- **Synchronous Operation**: Uses `runBlocking` - UI may freeze briefly
+- **Image Compression**: 85% JPEG quality balances size and clarity
+- **Token Limit**: 150 max tokens keeps responses fast and focused
+- **Network Dependent**: Requires active internet connection
+
+## Tracking and Analytics
+
+Each scraping operation is tracked:
+
+```kotlin
+trackMagicRun("magicScraper", description, result)
+```
+
+This logs:
+- Input description
+- Output result
+- Timestamp
+- Device ID
+
+## Model Selection
+
+Change the vision model in app settings:
+
+```javascript
+// Available models:
+// - "google/gemini-2.0-flash-001" (Gemini 2.0 Flash)
+// - "meta-llama/llama-4-maverick:free" (Llama 4 Maverick - Free)
+```
+
+Select via the **Model** button in the PhoneClaw app interface.
+
+## Advanced Usage
+
+### Combining with magicClicker
+
+```javascript
+// Check state before clicking
+var buttonText = Android.magicScraper("What text is on the blue button?");
+
+if (buttonText.includes("Submit")) {
+    Android.magicClicker("Blue submit button");
+} else if (buttonText.includes("Next")) {
+    Android.magicClicker("Blue next button");
+}
+```
+
+### Data Validation Loop
+
+```javascript
+function waitForBatteryCharge(targetPercent) {
+    while (true) {
+        var battery = Android.magicScraper("battery percentage");
+        var level = parseInt(battery);
+        
+        if (level >= targetPercent) {
+            Android.speakText("Battery charged to " + level + " percent");
+            break;
+        }
+        
+        delay(60000); // Check every minute
+    }
+}
+
+waitForBatteryCharge(80);
+```
+
+## Comparison with Other Methods
+
+| Feature | magicScraper | Traditional OCR | Accessibility |
+|---------|--------------|-----------------|---------------|
+| Setup | Zero config | Requires training | Needs service |
+| Accuracy | High with context | Character-level | Element-dependent |
+| Flexibility | Natural language | Fixed patterns | Limited to labels |
+| Speed | 2-5 seconds | Sub-second | Instant |
+
+## Related Functions
+
+- [`magicClicker()`](/api/magic-clicker) - Click UI elements using natural language
+- `speakText()` - Provide voice feedback with scraped data
+- `delay()` - Wait between scraping operations
+
+## Limitations
+
+- Requires active internet connection
+- 30-second timeout for complex queries
+- May briefly freeze UI during execution
+- Accuracy depends on screen clarity and query specificity
+- Uses API credits/rate limits (check OpenRouter plan)
+
+## See Also
+
+- [First Automation Guide](/guides/first-automation)
+- [Setup Device Guide](/guides/setup-device)
+- [OpenRouter Models Documentation](https://openrouter.ai/docs)

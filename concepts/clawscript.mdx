@@ -1,0 +1,300 @@
+---
+title: 'ClawScript: JavaScript Engine'
+description: 'Learn how PhoneClaw uses Mozilla Rhino to execute JavaScript automation scripts'
+---
+
+## Overview
+
+ClawScript is PhoneClaw's JavaScript execution engine, powered by [Mozilla Rhino](https://github.com/mozilla/rhino). It enables natural language automation by converting voice commands into executable JavaScript code that controls Android device functions.
+
+## Architecture
+
+### JavaScript Engine: Mozilla Rhino
+
+PhoneClaw uses **Rhino 1.7.13**, a pure Java implementation of JavaScript that runs directly on Android:
+
+```kotlin build.gradle.kts
+implementation("org.mozilla:rhino:1.7.13")
+```
+
+<Info>
+  **Why Rhino?** Rhino provides a sandboxed JavaScript environment that's perfect for Android automation - it runs entirely in the JVM without requiring V8 or other native engines.
+</Info>
+
+### Script Execution Flow
+
+1. **Voice Input** → User speaks a command ("Click the login button")
+2. **AI Translation** → OpenRouter converts command to JavaScript
+3. **Code Extraction** → Extract JavaScript from AI response
+4. **Rhino Execution** → Execute in sandboxed environment
+5. **Android Actions** → Trigger device automation via AndroidJSInterface
+
+## Core Implementation
+
+### Setting Up the Rhino Context
+
+From `MainActivity.kt:4169-4186`:
+
+```kotlin
+private suspend fun executeGeneratedCode(code: String) {
+    withContext(Dispatchers.Default) {
+        var context: org.mozilla.javascript.Context? = null
+        try {
+            context = org.mozilla.javascript.Context.enter()
+            
+            // Optimization level -1 for interpreted mode (Android compatibility)
+            context.optimizationLevel = -1
+            
+            // Security: ClassShutter to prevent dangerous reflective access
+            context.setClassShutter { className ->
+                !className.startsWith("javax.lang.model") &&
+                !className.startsWith("javax.annotation.processing") &&
+                !className.startsWith("java.lang.reflect") &&
+                !className.startsWith("sun.") &&
+                !className.startsWith("com.sun.")
+            }
+            
+            val scope = context.initStandardObjects()
+            val androidInterface = AndroidJSInterface()
+            scope.put("Android", scope, androidInterface)
+            
+            // Execute wrapped code...
+        } finally {
+            context?.let { org.mozilla.javascript.Context.exit() }
+        }
+    }
+}
+```
+
+<Warning>
+  **Security Note:** The ClassShutter prevents scripts from accessing dangerous Java reflection APIs. Never remove these restrictions in production.
+</Warning>
+
+### JavaScript Bridge Interface
+
+PhoneClaw exposes Android functionality through the `Android` object:
+
+```javascript
+// Core automation functions
+function magicClicker(description) { 
+    Android.magicClicker(description); 
+}
+
+function magicScraper(description) { 
+    return Android.magicScraper(description); 
+}
+
+// System controls
+function speakText(text) { Android.speakText(text); }
+function delay(ms) { Android.delay(ms); }
+function simulateClick(x, y) { Android.simulateClick(x, y); }
+
+// App launching
+function launchTikTok() { Android.launchTikTok(); }
+function launchInstagram() { Android.launchInstagram(); }
+```
+
+## Available Functions
+
+### Magic Functions
+
+These use vision AI to interact with UI elements:
+
+<Accordion title="magicClicker(description)">
+  Finds and clicks UI elements using natural language descriptions.
+  
+  ```javascript
+  magicClicker("login button");
+  magicClicker("profile icon in top right");
+  ```
+  
+  Uses Moondream API for vision-based element detection.
+</Accordion>
+
+<Accordion title="magicScraper(description)">
+  Extracts text content from the screen using vision AI.
+  
+  ```javascript
+  const username = magicScraper("current username");
+  const batteryLevel = magicScraper("battery percentage");
+  ```
+  
+  Returns extracted text as a string.
+</Accordion>
+
+### Accessibility Functions
+
+Direct UI interaction via Android Accessibility Service:
+
+```javascript
+// Find and click elements
+clickNodesByContentDescription("Home");
+simulateTypeInFirstEditableField("Hello World");
+pressEnterKey();
+
+// Check screen content
+if (isTextPresentOnScreen("Login")) {
+    speakText("Found login screen");
+}
+```
+
+### App Control
+
+```javascript
+// Launch apps
+launchTikTok();
+launchInstagram();
+launchYouTube();
+
+// Check if app is installed
+if (Android.isAppInstalled("com.instagram.android")) {
+    launchInstagram();
+}
+```
+
+### System Settings
+
+```javascript
+// Toggle system features
+toggleWiFi(true);
+toggleBluetooth(false);
+setBrightness(50);
+setVolume("media", 80);
+
+// Open settings
+openWiFiSettings();
+openBatterySettings();
+```
+
+## Code Extraction
+
+AI responses are automatically cleaned to extract pure JavaScript:
+
+```kotlin
+private fun extractJavaScriptCode(response: String): String {
+    // Extract from markdown code blocks
+    val codeBlockRegex = "```(?:javascript|js)?\n(.*?)```".toRegex(RegexOption.DOT_MATCHES_ALL)
+    val codeBlockMatch = codeBlockRegex.find(response)
+    
+    if (codeBlockMatch != null) {
+        return codeBlockMatch.groupValues[1].trim()
+    }
+    
+    // Fallback: extract lines that look like JavaScript
+    val lines = response.split("\n")
+    val jsLines = lines.filter { line ->
+        val trimmed = line.trim()
+        trimmed.isNotEmpty() &&
+            !trimmed.startsWith("//") &&
+            (trimmed.contains("(") || trimmed.contains(";") || trimmed.contains("{"))
+    }
+    
+    return if (jsLines.isNotEmpty()) {
+        jsLines.joinToString("\n")
+    } else {
+        response.trim()
+    }
+}
+```
+
+## Error Handling
+
+All script execution includes automatic error catching:
+
+```javascript
+try {
+    // Your automation code here
+    magicClicker("submit button");
+    delay(2000);
+} catch (error) {
+    Android.speakText("Error executing automation: " + error.message);
+    Android.logInfo("AutomationError", error.message);
+}
+```
+
+## Performance Optimization
+
+### Optimization Level
+
+```kotlin
+context.optimizationLevel = -1  // Interpreted mode for Android
+```
+
+<Note>
+  Rhino's optimization level is set to -1 (interpreted mode) for Android compatibility. Higher optimization levels require bytecode generation which isn't reliable on Android.
+</Note>
+
+### Async Execution
+
+Scripts run on a background dispatcher to prevent UI blocking:
+
+```kotlin
+withContext(Dispatchers.Default) {
+    // Rhino execution happens here
+}
+```
+
+## Example Scripts
+
+### Simple Click Automation
+
+```javascript
+// Launch app and navigate
+launchInstagram();
+delay(3000);
+
+magicClicker("search icon");
+delay(1000);
+
+simulateTypeInFirstEditableField("#automation");
+pressEnterKey();
+
+speakText("Search completed");
+```
+
+### Data Scraping
+
+```javascript
+// Extract information from screen
+const followers = magicScraper("follower count");
+const username = magicScraper("profile username");
+
+speakText(`Found ${followers} followers for ${username}`);
+```
+
+### Conditional Logic
+
+```javascript
+if (isTextPresentOnScreen("Login")) {
+    magicClicker("login button");
+    delay(2000);
+    
+    simulateTypeInFirstEditableField("user@example.com");
+    simulateTypeInSecondEditableField("password123");
+    
+    magicClicker("submit");
+} else {
+    speakText("Already logged in");
+}
+```
+
+## Limitations
+
+<Warning>
+  **Known Limitations:**
+  - No ES6+ features (arrow functions, async/await)
+  - No Node.js modules or npm packages
+  - Limited to synchronous execution (use Android.delay() for timing)
+  - Cannot access Android SDK directly (use exposed Android interface)
+</Warning>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Accessibility Service" icon="universal-access" href="/concepts/accessibility-service">
+    Learn how ClawScript interacts with Android UI
+  </Card>
+  <Card title="Vision Targeting" icon="eye" href="/concepts/vision-targeting">
+    Understand vision-based UI detection
+  </Card>
+</CardGroup>

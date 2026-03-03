@@ -1,0 +1,94 @@
+---
+title: 'ClawScript API Overview'
+description: 'JavaScript API for automating Android devices with PhoneClaw'
+---
+
+## What is ClawScript?
+
+ClawScript is the JavaScript API exposed to automation scripts running in PhoneClaw. It provides a comprehensive set of functions for controlling Android devices, including:
+
+- **Speech synthesis** - Make your device speak text
+- **Timing controls** - Add delays and schedule recurring tasks
+- **UI automation** - Click, type, swipe, and interact with screen elements
+- **Notifications** - Send emails and alerts
+- **System utilities** - Access device information and settings
+
+## Accessing ClawScript
+
+All ClawScript functions are available through the global `Android` object in your automation scripts:
+
+```javascript
+// Speak text
+Android.speakText("Hello, world!");
+
+// Wait 2 seconds
+Android.delay(2000);
+
+// Schedule a task
+Android.schedule("Android.speakText('Time check')", "0 */5 * * * *");
+```
+
+## Core API Categories
+
+<Columns cols={2}>
+  <Card title="Speech" icon="microphone" href="/api/speech">
+    Text-to-speech functionality for voice feedback
+  </Card>
+  <Card title="Timing" icon="clock" href="/api/timing">
+    Delays and time-based controls
+  </Card>
+  <Card title="Scheduling" icon="calendar" href="/api/scheduling">
+    Cron-based task scheduling
+  </Card>
+  <Card title="UI Automation" icon="hand-pointer" href="/api/ui-automation">
+    Screen interaction and gesture simulation
+  </Card>
+  <Card title="Notifications" icon="envelope" href="/api/notifications">
+    Email and notification sending
+  </Card>
+  <Card title="Magic Helpers" icon="wand-magic-sparkles" href="/api/magic-clicker">
+    AI-powered vision targeting
+  </Card>
+</Columns>
+
+## JavaScript Interface
+
+ClawScript functions are implemented as `@JavascriptInterface` methods in the Android MainActivity. These functions bridge JavaScript code with native Android capabilities.
+
+<Info>
+  All ClawScript functions are synchronous unless otherwise noted. Async operations use blocking calls internally.
+</Info>
+
+## Error Handling
+
+Most ClawScript functions include built-in error handling and will log errors to the Android logcat. Failed operations typically speak error messages through TTS.
+
+```javascript
+try {
+  Android.sendAgentEmail("user@example.com", "Test", "Message");
+} catch (e) {
+  Android.speakText("Email failed: " + e.message);
+}
+```
+
+## Type Safety
+
+ClawScript includes helper functions for safe type conversion:
+
+- Numeric parameters accept `Number` types or fall back to defaults
+- String parameters are converted automatically
+- Boolean parameters follow JavaScript truthy/falsy rules
+
+## Next Steps
+
+<Steps>
+  <Step title="Learn the basics">
+    Start with [speech](/api/speech) and [timing](/api/timing) functions
+  </Step>
+  <Step title="Build automations">
+    Explore [UI automation](/api/ui-automation) for screen interactions
+  </Step>
+  <Step title="Schedule tasks">
+    Use [scheduling](/api/scheduling) for recurring automations
+  </Step>
+</Steps>

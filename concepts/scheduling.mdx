@@ -1,0 +1,620 @@
+---
+title: 'Cron-Based Task Scheduling'
+description: 'How PhoneClaw schedules and executes automation tasks using cron expressions'
+---
+
+## Overview
+
+PhoneClaw includes a **cron-based task scheduler** that enables automation scripts to run on recurring schedules. This allows you to automate posting, data scraping, monitoring, and other tasks without manual intervention.
+
+## Architecture
+
+### Data Model
+
+From `MainActivity.kt:152-159`:
+
+```kotlin
+data class CronTask(
+    val id: String,
+    val taskDescription: String,
+    val cronExpression: String,
+    val createdAt: Long = System.currentTimeMillis(),
+    var lastExecuted: Long = 0L,
+    var isActive: Boolean = true
+)
+```
+
+**Fields:**
+- `id`: Unique UUID for the task
+- `taskDescription`: JavaScript code or human-readable description
+- `cronExpression`: Cron schedule (simplified format)
+- `createdAt`: Timestamp when task was created
+- `lastExecuted`: Last execution timestamp
+- `isActive`: Whether task should run
+
+### Scheduler Implementation
+
+PhoneClaw uses Kotlin coroutines for lightweight background scheduling:
+
+```kotlin
+private val cronScheduler: ScheduledExecutorService = Executors.newScheduledThreadPool(2)
+private var cronCheckJob: Job? = null
+private val cronTasks = mutableMapOf<String, CronTask>()
+```
+
+## Starting the Scheduler
+
+From `MainActivity.kt:3497-3520`:
+
+```kotlin
+private fun startCronChecker() {
+    cronCheckJob?.cancel()
+    
+    cronCheckJob = mainScope.launch {
+        Log.d("MainActivity", "Cron checker started")
+        
+        while (isActive && !isDestroyed) {
+            try {
+                checkAndExecuteCronTasks()
+                
+                // Check every 60 seconds
+                delay(60000)
+            } catch (e: CancellationException) {
+                Log.d("MainActivity", "Cron checker cancelled")
+                throw e
+            } catch (e: Exception) {
+                Log.e("MainActivity", "Error in cron checker: ${e.message}")
+                delay(60000)
+            }
+        }
+    }
+}
+```
+
+<Info>
+  The scheduler checks every 60 seconds to see if any tasks should execute. This provides minute-level scheduling precision.
+</Info>
+
+## Task Execution Logic
+
+From `MainActivity.kt:3521-3555`:
+
+```kotlin
+private suspend fun checkAndExecuteCronTasks() {
+    if (isDestroyed) return
+    
+    val currentTime = System.currentTimeMillis()
+    
+    for ((taskId, cronTask) in cronTasks.toMap()) {
+        if (!cronTask.isActive) continue
+        
+        try {
+            if (shouldExecuteCronTask(cronTask, currentTime)) {
+                Log.d("MainActivity", "Executing cron task: ${cronTask.taskDescription}")
+                updateStatusWithAnimation("⏰ Running scheduled task")
+                
+                withContext(Dispatchers.Main) {
+                    speakText("Running scheduled task: ${cronTask.taskDescription}")
+                }
+                
+                // Execute the task
+                executeGeneratedCode(cronTask.taskDescription)
+                
+                // Update last execution time
+                cronTasks[taskId] = cronTask.copy(lastExecuted = currentTime)
+                saveCronTasks()
+                
+                Log.d("MainActivity", "Cron task completed: ${cronTask.taskDescription}")
+            }
+        } catch (e: Exception) {
+            Log.e("MainActivity", "Error executing cron task $taskId: ${e.message}")
+        }
+    }
+}
+```
+
+## Cron Expression Format
+
+PhoneClaw uses a **simplified cron format**:
+
+```
+[second] [minute] [hour] [day] [month]
+```
+
+### Supported Patterns
+
+<AccordionGroup>
+  <Accordion title="Every N seconds">
+    ```
+    */30 * * * *    # Every 30 seconds
+    */10 * * * *    # Every 10 seconds
+    ```
+  </Accordion>
+  
+  <Accordion title="Every N minutes">
+    ```
+    0 */5 * * *     # Every 5 minutes
+    0 */15 * * *    # Every 15 minutes
+    0 */30 * * *    # Every 30 minutes
+    ```
+  </Accordion>
+  
+  <Accordion title="Every N hours">
+    ```
+    0 0 */2 * *     # Every 2 hours
+    0 0 */6 * *     # Every 6 hours
+    ```
+  </Accordion>
+  
+  <Accordion title="Once daily">
+    ```
+    0 0 0 * *       # Midnight every day
+    0 0 9 * *       # 9 AM every day
+    0 0 18 * *      # 6 PM every day
+    ```
+  </Accordion>
+</AccordionGroup>
+
+### Expression Parser
+
+From `MainActivity.kt:3556-3620`:
+
+```kotlin
+private fun shouldExecuteCronTask(cronTask: CronTask, currentTime: Long): Boolean {
+    val interval = getIntervalFromCron(cronTask.cronExpression) ?: return false
+    
+    if (cronTask.lastExecuted == 0L) {
+        return true  // Never executed, run now
+    }
+    
+    val timeSinceLastRun = currentTime - cronTask.lastExecuted
+    return timeSinceLastRun >= interval
+}
+
+private fun getIntervalFromCron(cronExpression: String): Long? {
+    try {
+        val parts = cronExpression.split(" ")
+        if (parts.size != 5) return null
+        
+        val (secondPart, minutePart, hourPart, dayPart, monthPart) = parts
+        
+        return when {
+            // Every N seconds: */30 * * * *
+            secondPart.startsWith("*/") -> {
+                val interval = secondPart.substring(2).toIntOrNull()
+                interval?.let { it * 1000L }
+            }
+            
+            // Every N minutes: 0 */5 * * *
+            secondPart == "0" && minutePart.startsWith("*/") -> {
+                val interval = minutePart.substring(2).toIntOrNull()
+                interval?.let { it * 60 * 1000L }
+            }
+            
+            // Every N hours: 0 0 */2 * *
+            secondPart == "0" && minutePart == "0" && hourPart.startsWith("*/") -> {
+                val interval = hourPart.substring(2).toIntOrNull()
+                interval?.let { it * 60 * 60 * 1000L }
+            }
+            
+            // Daily: 0 0 0 * *
+            secondPart == "0" && minutePart == "0" && hourPart != "*" && dayPart == "*" -> {
+                24 * 60 * 60 * 1000L
+            }
+            
+            else -> null
+        }
+    } catch (e: Exception) {
+        return null
+    }
+}
+```
+
+<Note>
+  The parser converts cron expressions to millisecond intervals. More complex expressions (specific days, months) are not currently supported.
+</Note>
+
+## Creating Scheduled Tasks
+
+### Via JavaScript API
+
+```javascript
+// Schedule a task to run every 5 minutes
+schedule(
+    "magicClicker('refresh button')",
+    "0 */5 * * *"
+);
+
+// Schedule daily Instagram post at 9 AM
+schedule(
+    `launchInstagram();
+     delay(3000);
+     magicClicker('create post');
+     // ... rest of upload sequence
+    `,
+    "0 0 9 * *"
+);
+
+// Clear all scheduled tasks
+clearSchedule();
+```
+
+### Via Kotlin API
+
+From `MainActivity.kt:3622-3633`:
+
+```kotlin
+private fun addCronTask(taskDescription: String, cronExpression: String): String {
+    val taskId = UUID.randomUUID().toString()
+    val cronTask = CronTask(taskId, taskDescription, cronExpression)
+    
+    cronTasks[taskId] = cronTask
+    saveCronTasks()
+    
+    val interval = getIntervalFromCron(cronExpression)
+    Log.d("MainActivity", "Added cron task: $taskDescription with expression: $cronExpression, interval: ${interval}ms")
+    
+    return taskId
+}
+```
+
+### Via AndroidJSInterface
+
+From `MainActivity.kt:5480-5530`:
+
+```kotlin
+@JavascriptInterface
+fun schedule(task: String, cronExpression: String) {
+    try {
+        val taskId = this@MainActivity.addCronTask(task, cronExpression)
+        
+        val interval = this@MainActivity.getIntervalFromCron(cronExpression)
+        val intervalText = when {
+            interval == null -> "unknown interval"
+            interval < 60000 -> "${interval / 1000} seconds"
+            interval < 3600000 -> "${interval / 60000} minutes"
+            interval < 86400000 -> "${interval / 3600000} hours"
+            else -> "${interval / 86400000} days"
+        }
+        
+        this@MainActivity.speakText("Scheduled task to run every $intervalText")
+        
+        Log.d("AndroidJSInterface", "Scheduled task: $task")
+        Log.d("AndroidJSInterface", "Cron expression: $cronExpression")
+        Log.d("AndroidJSInterface", "Interval: $intervalText")
+        Log.d("AndroidJSInterface", "Total active cron tasks: ${this@MainActivity.cronTasks.size}")
+    } catch (e: Exception) {
+        Log.e("AndroidJSInterface", "Error scheduling task: ${e.message}")
+        this@MainActivity.speakText("Error scheduling task")
+    }
+}
+
+@JavascriptInterface
+fun clearSchedule() {
+    val taskCount = this@MainActivity.cronTasks.size
+    this@MainActivity.cronTasks.clear()
+    this@MainActivity.saveCronTasks()
+    this@MainActivity.speakText("Cleared $taskCount scheduled tasks")
+    Log.d("AndroidJSInterface", "Cleared all scheduled tasks")
+}
+```
+
+## Persistence
+
+Tasks are saved to SharedPreferences as JSON:
+
+### Saving Tasks
+
+```kotlin
+private fun saveCronTasks() {
+    try {
+        val jsonObject = JSONObject()
+        for ((key, task) in cronTasks) {
+            val taskJson = JSONObject().apply {
+                put("id", task.id)
+                put("taskDescription", task.taskDescription)
+                put("cronExpression", task.cronExpression)
+                put("createdAt", task.createdAt)
+                put("lastExecuted", task.lastExecuted)
+                put("isActive", task.isActive)
+            }
+            jsonObject.put(key, taskJson)
+        }
+        sharedPreferences.edit().putString("cron_tasks", jsonObject.toString()).apply()
+    } catch (e: Exception) {
+        Log.e("MainActivity", "Error saving cron tasks: ${e.message}")
+    }
+}
+```
+
+### Loading Tasks
+
+```kotlin
+private fun loadCronTasks() {
+    try {
+        val tasksJson = sharedPreferences.getString("cron_tasks", "") ?: ""
+        if (tasksJson.isNotEmpty()) {
+            val jsonObject = JSONObject(tasksJson)
+            
+            val keys = jsonObject.keys()
+            while (keys.hasNext()) {
+                val key = keys.next()
+                val taskJson = jsonObject.getJSONObject(key)
+                val task = CronTask(
+                    id = taskJson.getString("id"),
+                    taskDescription = taskJson.getString("taskDescription"),
+                    cronExpression = taskJson.getString("cronExpression"),
+                    createdAt = taskJson.optLong("createdAt", System.currentTimeMillis()),
+                    lastExecuted = taskJson.optLong("lastExecuted", 0L),
+                    isActive = taskJson.optBoolean("isActive", true)
+                )
+                
+                cronTasks[task.id] = task
+            }
+            
+            Log.d("MainActivity", "Loaded ${cronTasks.size} cron tasks")
+        }
+    } catch (e: Exception) {
+        Log.e("MainActivity", "Error loading cron tasks: ${e.message}")
+    }
+}
+```
+
+## UI Integration
+
+PhoneClaw includes a modern UI for managing scheduled tasks:
+
+### Task List Fragment
+
+```kotlin
+class ScheduledTasksFragment : Fragment() {
+    private lateinit var tasksRecyclerView: RecyclerView
+    private lateinit var swipeRefresh: SwipeRefreshLayout
+    private lateinit var tasksAdapter: TasksAdapter
+    
+    fun updateTasks(tasks: List<CronTask>) {
+        if (::tasksAdapter.isInitialized) {
+            tasksAdapter.updateTasks(tasks)
+        }
+    }
+}
+```
+
+### Task Management
+
+```kotlin
+fun runTaskNow(task: CronTask) {
+    mainScope.launch {
+        try {
+            updateStatusWithAnimation("▶️ Running task immediately")
+            speakText("Running task: ${task.taskDescription.take(50)}")
+            
+            executeGeneratedCode(task.taskDescription)
+            
+            cronTasks[task.id] = task.copy(lastExecuted = System.currentTimeMillis())
+            saveCronTasks()
+            updateUI()
+            
+            speakText("Task completed successfully")
+        } catch (e: Exception) {
+            Log.e("MainActivity", "Error running task now: ${e.message}")
+            speakText("Error running task")
+        }
+    }
+}
+
+fun deleteTask(task: CronTask) {
+    MaterialAlertDialogBuilder(this)
+        .setTitle("Delete Task?")
+        .setMessage("Are you sure you want to delete this scheduled task?")
+        .setPositiveButton("Delete") { _, _ ->
+            cronTasks.remove(task.id)
+            saveCronTasks()
+            updateUI()
+            speakText("Task deleted")
+        }
+        .setNegativeButton("Cancel", null)
+        .show()
+}
+```
+
+## Example Use Cases
+
+### Daily Social Media Posting
+
+```javascript
+// Schedule TikTok upload every day at 6 PM
+schedule(`
+    launchTikTok();
+    delay(5000);
+    
+    clickVideoUploadButton();
+    delay(2000);
+    
+    clickFirstGalleryItem();
+    delay(3000);
+    
+    magicClicker('next button');
+    delay(2000);
+    
+    simulateTypeInFirstEditableField('#automation #dailypost');
+    delay(2000);
+    
+    magicClicker('post button');
+    speakText('Daily TikTok post scheduled!');
+`, "0 0 18 * *");
+```
+
+### Periodic Data Scraping
+
+```javascript
+// Check follower count every hour
+schedule(`
+    launchInstagram();
+    delay(3000);
+    
+    magicClicker('profile tab');
+    delay(2000);
+    
+    const followers = magicScraper('follower count');
+    const timestamp = new Date().toLocaleString();
+    
+    speakText('Current followers: ' + followers);
+    
+    // Log to Firebase or local storage
+    Android.logInfo('FollowerTracking', timestamp + ': ' + followers);
+`, "0 0 * * *");
+```
+
+### System Monitoring
+
+```javascript
+// Check battery level every 15 minutes
+schedule(`
+    const battery = magicScraper('battery percentage');
+    const batteryNum = parseInt(battery);
+    
+    if (batteryNum < 20) {
+        speakText('Warning: Battery low at ' + battery + ' percent');
+        
+        // Enable battery saver
+        Android.openBatterySettings();
+    }
+`, "0 */15 * * *");
+```
+
+### Automated Engagement
+
+```javascript
+// Like posts every 30 minutes
+schedule(`
+    launchInstagram();
+    delay(3000);
+    
+    // Scroll through feed
+    for (let i = 0; i < 5; i++) {
+        magicClicker('like button');
+        delay(2000);
+        
+        swipeUp();
+        delay(3000);
+    }
+    
+    speakText('Engagement round completed');
+`, "0 */30 * * *");
+```
+
+## Best Practices
+
+<Warning>
+  **Rate Limiting:** Be mindful of API rate limits and app usage policies. Excessive automation may trigger spam detection on social platforms.
+</Warning>
+
+<Note>
+  **Battery Optimization:** Android may kill background processes to save battery. Consider:
+  - Disabling battery optimization for PhoneClaw
+  - Using longer intervals (hourly vs. every minute)
+  - Scheduling during device charging times
+</Note>
+
+### Error Recovery
+
+```javascript
+function robustScheduledTask() {
+    try {
+        // Main task logic
+        launchInstagram();
+        delay(3000);
+        
+        if (!isTextPresentOnScreen("Home")) {
+            throw new Error("Instagram not loaded");
+        }
+        
+        magicClicker("create post");
+        // ... rest of automation
+        
+    } catch (error) {
+        speakText("Task failed: " + error.message);
+        Android.logInfo("ScheduledTaskError", error.message);
+        
+        // Attempt recovery
+        speakText("Will retry next scheduled run");
+    }
+}
+
+schedule(robustScheduledTask.toString(), "0 0 */6 * *");
+```
+
+## Troubleshooting
+
+### Tasks Not Running
+
+```kotlin
+private fun testCronScheduler() {
+    mainScope.launch {
+        delay(5000)
+        Log.d("MainActivity", "Testing cron scheduler...")
+        Log.d("MainActivity", "Current tasks: ${cronTasks.size}")
+        
+        cronTasks.values.forEach { task ->
+            Log.d("MainActivity", "Task: ${task.taskDescription}")
+            Log.d("MainActivity", "Expression: ${task.cronExpression}")
+            Log.d("MainActivity", "Last executed: ${task.lastExecuted}")
+            Log.d("MainActivity", "Active: ${task.isActive}")
+            
+            val interval = getIntervalFromCron(task.cronExpression)
+            Log.d("MainActivity", "Calculated interval: ${interval}ms")
+            
+            val shouldExecute = shouldExecuteCronTask(task, System.currentTimeMillis())
+            Log.d("MainActivity", "Should execute now: $shouldExecute")
+        }
+    }
+}
+```
+
+### Check Scheduler Status
+
+```javascript
+// Log current scheduled tasks
+Android.logInfo("Scheduler", "Checking task status...");
+
+// Verify scheduler is running
+if (!isTextPresentOnScreen("Scheduled Tasks")) {
+    speakText("Navigate to Scheduled Tasks tab to view active tasks");
+}
+```
+
+## Performance Considerations
+
+- **60-second check interval** provides minute-level precision
+- **Coroutine-based** for lightweight background execution
+- **Persisted to SharedPreferences** for survival across app restarts
+- **Automatic cleanup** when app is destroyed
+
+## Lifecycle Management
+
+```kotlin
+override fun onDestroy() {
+    isDestroyed = true
+    
+    // Cancel cron checker
+    cronCheckJob?.cancel()
+    
+    // Shutdown executor
+    cronScheduler.shutdownNow()
+    cronScheduler.awaitTermination(1, TimeUnit.SECONDS)
+    
+    super.onDestroy()
+}
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="ClawScript API" icon="code" href="/concepts/clawscript">
+    Full JavaScript automation reference
+  </Card>
+  <Card title="Vision Targeting" icon="eye" href="/concepts/vision-targeting">
+    Use vision AI in scheduled tasks
+  </Card>
+</CardGroup>

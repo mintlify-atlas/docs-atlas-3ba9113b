@@ -1,0 +1,339 @@
+---
+title: 'Timing Controls'
+description: 'Delay execution and manage timing in automations'
+icon: 'clock'
+---
+
+## delay()
+
+Pauses script execution for a specified number of milliseconds. Essential for timing-dependent automations where you need to wait for UI elements, animations, or network requests.
+
+<ParamField path="ms" type="number" required>
+  Duration to wait in milliseconds. Accepts any numeric type. Defaults to 1000ms (1 second) if invalid.
+</ParamField>
+
+<ResponseField name="return" type="void">
+  This function blocks execution and does not return a value.
+</ResponseField>
+
+### Basic Usage
+
+```javascript
+// Wait 1 second
+Android.delay(1000);
+
+// Wait 3 seconds
+Android.delay(3000);
+
+// Wait half a second
+Android.delay(500);
+```
+
+### Practical Examples
+
+<CodeGroup>
+
+```javascript UI Interactions
+// Wait for screen transition
+Android.simulateClick(100, 200);
+Android.delay(2000); // Wait for new screen to load
+Android.speakText("Screen loaded");
+
+// Type with natural timing
+Android.simulateTypeInFirstEditableField("username");
+Android.delay(500); // Brief pause
+Android.simulateTypeInSecondEditableField("password");
+Android.delay(500);
+Android.pressEnterKey();
+```
+
+```javascript Form Submission
+// Multi-step form with delays
+function fillForm(name, email, phone) {
+  Android.speakText("Filling form");
+  
+  Android.simulateTypeInFirstEditableField(name);
+  Android.delay(1000);
+  
+  Android.simulateClick(100, 500); // Next field
+  Android.delay(500);
+  
+  Android.simulateTypeInFirstEditableField(email);
+  Android.delay(1000);
+  
+  Android.simulateClick(100, 700); // Next field
+  Android.delay(500);
+  
+  Android.simulateTypeInFirstEditableField(phone);
+  Android.delay(1000);
+  
+  Android.speakText("Form complete");
+}
+
+fillForm("John Doe", "john@example.com", "555-1234");
+```
+
+```javascript Animation Timing
+// Wait for animations
+function openMenu() {
+  Android.simulateClick(50, 100); // Hamburger menu
+  Android.delay(500); // Wait for slide-out animation
+  
+  Android.simulateClick(150, 300); // Menu item
+  Android.delay(800); // Wait for transition
+  
+  Android.speakText("Menu opened");
+}
+
+openMenu();
+```
+
+```javascript Network Requests
+// Wait for content to load
+Android.simulateClick(200, 400); // Load more button
+Android.speakText("Loading content");
+Android.delay(3000); // Wait for network request
+
+Android.simulateScrollToBottom();
+Android.delay(1000);
+
+Android.speakText("Content loaded");
+```
+
+</CodeGroup>
+
+## Implementation Details
+
+### Source Location
+
+`MainActivity.kt:5462`
+
+```kotlin
+@JavascriptInterface
+fun delay(ms: Any?) {
+    val safeMs = (ms as? Number)?.toLong() ?: 1000L
+    Thread.sleep(safeMs)
+}
+```
+
+### Type Handling
+
+The function safely converts input to a `Long` value:
+
+- JavaScript numbers → Kotlin `Long`
+- Invalid/null values → Default 1000ms
+- Negative values → Treated as-is (no delay)
+
+<Info>
+  The delay blocks the current thread using `Thread.sleep()`. During this time, no other script operations execute.
+</Info>
+
+## Common Timing Patterns
+
+### Standard Delays
+
+```javascript
+// Quick pause (animations)
+const QUICK = 500;
+
+// Standard pause (UI transitions)
+const STANDARD = 1000;
+
+// Long pause (page loads)
+const LONG = 3000;
+
+// Extra long (network requests)
+const EXTRA_LONG = 5000;
+
+Android.simulateClick(100, 200);
+Android.delay(STANDARD);
+```
+
+### Retry Logic
+
+```javascript
+function clickWithRetry(x, y, maxRetries = 3) {
+  for (let i = 0; i < maxRetries; i++) {
+    Android.simulateClick(x, y);
+    Android.delay(1000);
+    
+    // Check if successful
+    if (Android.isTextPresentOnScreen("Success")) {
+      Android.speakText("Click successful");
+      return true;
+    }
+    
+    Android.speakText("Retry attempt " + (i + 1));
+    Android.delay(2000);
+  }
+  
+  Android.speakText("All retries failed");
+  return false;
+}
+```
+
+### Progressive Delays
+
+```javascript
+function progressiveWait(baseDelay, attempts) {
+  for (let i = 0; i < attempts; i++) {
+    const currentDelay = baseDelay * (i + 1);
+    Android.speakText("Waiting " + currentDelay + " milliseconds");
+    Android.delay(currentDelay);
+  }
+}
+
+// Wait 1s, 2s, 3s, 4s, 5s
+progressiveWait(1000, 5);
+```
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Use constants for common delays">
+    Define timing constants at the top of your script for easy tuning.
+    
+    ```javascript
+    const DELAYS = {
+      ANIMATION: 500,
+      TRANSITION: 1000,
+      PAGE_LOAD: 3000,
+      NETWORK: 5000
+    };
+    
+    Android.simulateClick(100, 200);
+    Android.delay(DELAYS.TRANSITION);
+    ```
+  </Accordion>
+
+  <Accordion title="Add delays after every UI interaction">
+    Always add a delay after clicks, typing, or swipes to let the UI respond.
+    
+    ```javascript
+    Android.simulateClick(100, 200);
+    Android.delay(1000); // Essential!
+    ```
+  </Accordion>
+
+  <Accordion title="Adjust delays based on device performance">
+    Slower devices may need longer delays. Consider device-specific timing.
+    
+    ```javascript
+    const deviceSpeed = "slow"; // slow, medium, fast
+    const multiplier = deviceSpeed === "slow" ? 2 : 1;
+    
+    Android.delay(1000 * multiplier);
+    ```
+  </Accordion>
+
+  <Accordion title="Balance speed and reliability">
+    Shorter delays = faster automation, but may cause failures. Find the sweet spot.
+    
+    ```javascript
+    // Too fast (may fail)
+    Android.delay(100);
+    
+    // Too slow (wastes time)
+    Android.delay(10000);
+    
+    // Just right
+    Android.delay(1500);
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Common Use Cases
+
+### Wait for Page Load
+
+```javascript
+function navigateToProfile() {
+  Android.speakText("Opening profile");
+  Android.simulateClick(50, 1800); // Profile button
+  Android.delay(3000); // Wait for profile page
+  
+  Android.speakText("Profile loaded");
+}
+```
+
+### Sequential Clicks
+
+```javascript
+function likeThreePosts() {
+  for (let i = 0; i < 3; i++) {
+    Android.speakText("Liking post " + (i + 1));
+    Android.simulateClick(600, 1200); // Like button
+    Android.delay(1000);
+    
+    Android.swipeUp(); // Next post
+    Android.delay(1500);
+  }
+  
+  Android.speakText("Liked 3 posts");
+}
+```
+
+### Form Entry Timing
+
+```javascript
+function loginWithDelay(username, password) {
+  Android.speakText("Logging in");
+  
+  // Username field
+  Android.simulateClick(400, 600);
+  Android.delay(500);
+  Android.simulateTypeInFirstEditableField(username);
+  Android.delay(1000);
+  
+  // Password field
+  Android.simulateClick(400, 800);
+  Android.delay(500);
+  Android.simulateTypeInSecondEditableField(password);
+  Android.delay(1000);
+  
+  // Submit
+  Android.pressEnterKey();
+  Android.delay(3000); // Wait for login
+  
+  Android.speakText("Login complete");
+}
+```
+
+## Limitations
+
+<Warning>
+  - Blocks script execution (synchronous)
+  - Cannot be interrupted once started
+  - Does not account for dynamic load times
+  - Very long delays (>30s) may trigger watchdogs
+</Warning>
+
+## Alternatives
+
+For more sophisticated timing:
+
+- **Polling loops**: Check for conditions repeatedly
+- **Scheduled tasks**: Use [schedule()](/api/scheduling) for recurring actions
+- **Event-based**: React to UI state changes rather than fixed delays
+
+```javascript
+// Polling alternative to fixed delay
+function waitForText(text, timeout = 10000) {
+  const start = Android.getCurrentTimeMillis();
+  
+  while (Android.getCurrentTimeMillis() - start < timeout) {
+    if (Android.isTextPresentOnScreen(text)) {
+      return true;
+    }
+    Android.delay(500);
+  }
+  
+  return false;
+}
+```
+
+## Related Functions
+
+- [schedule()](/api/scheduling) - Schedule delayed or recurring tasks
+- [speakText()](/api/speech) - Combine with delays for timed announcements
+- [magicClicker()](/api/magic-clicker) - Vision-based UI automation
